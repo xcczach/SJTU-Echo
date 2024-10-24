@@ -1,3 +1,4 @@
+# Extract all urls with "sjtu"
 from scrapper import StrSetDict
 
 
@@ -16,11 +17,33 @@ class TreeNode:
         return ret
 
 
+# Remove circular references and duplicates
+def get_cleaned_links_dict(links_dict: StrSetDict):
+    visited = set()
+    cleaned_dict = dict()
+
+    def visit(url):
+        visited.add(url)
+        if url in links_dict:
+            cleaned_dict[url] = list(set(links_dict[url]))
+            cleaned_dict[url] = [
+                child_url for child_url in cleaned_dict[url] if child_url not in visited
+            ]
+            for child_url in cleaned_dict[url]:
+                visit(child_url)
+
+    for url in links_dict:
+        visit(url)
+
+    return cleaned_dict
+
+
 def build_links_tree(urls_dict: StrSetDict, root_url: str):
     root = TreeNode(root_url)
 
     def add_children(node: TreeNode, url: str):
         if url in urls_dict:
+            print(f"Current url: {url}")
             for child_url in urls_dict[url]:
                 child_node = TreeNode(child_url)
                 node.add_child(child_node)
