@@ -1,5 +1,6 @@
 DATA_DIR = "data"
-from scrapper import StrSetDict, extract_links_recursively
+from scrapper import StrSetDict, extract_links_recursively, clean_links_dict
+from analyze import build_links_tree
 import json
 import argparse
 
@@ -15,6 +16,7 @@ def wrap_links_and_depth(links_dict: StrSetDict, depth: int) -> dict:
 
 
 def save_links(links_dict: StrSetDict, depth: int):
+    links_dict = clean_links_dict(links_dict)
     with open(LINKS_FILE_PATH, "w") as f:
         json.dump(wrap_links_and_depth(links_dict, depth), f)
     print(f"{count_links(links_dict)} links saved to {LINKS_FILE_PATH}")
@@ -52,12 +54,22 @@ def extract_links():
     save_links(visited_links, current_depth)
 
 
+def anaylze_links():
+    links, _ = load_links_and_depth()
+    root_url = "https://www.sjtu.edu.cn/"
+    tree = build_links_tree(links, root_url)
+    print(tree)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--extract", action="store_true")
+    parser.add_argument("--analyze", action="store_true")
     args = parser.parse_args()
     if args.extract:
         extract_links()
+    if args.analyze:
+        anaylze_links()
 
 
 if __name__ == "__main__":

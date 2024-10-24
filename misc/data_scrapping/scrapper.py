@@ -120,6 +120,17 @@ def extract_links_recursively(
     )
 
 
+def clean_links_dict(links_dict: StrSetDict):
+    for url in links_dict:
+        links_dict[url] = list(set(links_dict[url]))
+        if url in links_dict[url]:
+            links_dict[url].remove(url)
+        for item in links_dict[url]:
+            if not item.startswith("http") or item.startswith("https"):
+                links_dict[url].remove(item)
+    return links_dict
+
+
 if __name__ == "__main__":
     # driver = get_driver()
     # url = "https://www.sjtu.edu.cn/"
