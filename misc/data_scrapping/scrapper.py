@@ -10,10 +10,11 @@ import time
 from urllib.parse import urljoin
 import asyncio
 import math
-from typing import Callable, TypeAlias
+from typing import Callable, TypeAlias, Awaitable
 import re
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from urllib.parse import urlparse
 
 
 def get_driver():
@@ -35,7 +36,6 @@ def href_to_absolute(url: str, href: str):
 def _extract_links_from_source(source: str):
     soup = BeautifulSoup(source, "html.parser")
     links = set(a["href"] for a in soup.find_all("a", href=True))
-    links = [href_to_absolute(url, href) for href in links]
     return links
 
 
@@ -44,6 +44,7 @@ def extract_links(driver: WebDriver, url: str, wait_time: float = 2.0):
     driver.get(url)
     time.sleep(wait_time)
     links = _extract_links_from_source(driver.page_source)
+    links = [href_to_absolute(url, href) for href in links]
     return links
 
 
@@ -63,6 +64,9 @@ async def _extract_links_recursively_helper(
     max_depth: int = math.inf,
     wait_time: float = 2.0,
     recursion_callback: Callable[[StrSetDict, int], None] | None = None,
+    extract_function: Callable[
+        [str, float], Awaitable[list[str]]
+    ] = extract_links_async,
     _visited=set(),
     _depth=1,
     _result_dict: StrSetDict = dict(),
@@ -70,11 +74,10 @@ async def _extract_links_recursively_helper(
 ):
     if start_url in _visited or _depth > max_depth:
         return
-
     async with sema:
         _visited.add(start_url)
         if start_url not in _result_dict:
-            links = await extract_links_async(start_url, wait_time)
+            links = await extract_function(start_url, wait_time)
             _result_dict[start_url] = links
             if recursion_callback is not None:
                 async with _file_write_lock:
@@ -91,6 +94,7 @@ async def _extract_links_recursively_helper(
                         max_depth,
                         wait_time,
                         recursion_callback,
+                        extract_function,
                         _visited,
                         _depth + 1,
                         _result_dict,
@@ -120,6 +124,7 @@ def extract_links_recursively(
             max_depth,
             wait_time,
             recursion_callback,
+            extract_links_async,
             visited,
             current_depth,
             visited_links_dict,
@@ -132,7 +137,7 @@ def _extract_switch_page_elements_from_source(source: str) -> list[dict[str, str
     numeric_elements = []
     soup = BeautifulSoup(source, "html.parser")
     for element in soup.find_all(string=True):
-        text = element.strip()
+        text = element.text
         if re.fullmatch(r"\d+", text):
             parent_tag = element.parent
             numeric_elements.append(parent_tag)
@@ -153,38 +158,55 @@ async def _extract_target_url_from_dynamic_element_async(
     sema: asyncio.Semaphore,
     base_wait_time: float = 2.0,
     target_wait_time: float = 2.0,
+    null_result="",
 ) -> str:
+    print(f"Extracting target url from {element}")
     async with sema:
         driver = get_driver()
         driver.get(base_url)
         await asyncio.sleep(base_wait_time)
         tag_name = element["tag"]
-        if "href" in element:
-            href = element["href"]
-            selenium_element = driver.find_element(
-                By.XPATH, f"//{tag_name}[@href='{href}']"
-            )
-        else:
-            text = element["text"]
-            selenium_element = driver.find_element(
-                By.XPATH, f"//{tag_name}[text()='{text}']"
-            )
-        actions = ActionChains(driver)
-        actions.move_to_element(selenium_element).click().perform()
-        await asyncio.sleep(target_wait_time)
-        result = driver.current_url
+        try:
+            if "href" in element:
+                href = element["href"]
+                selenium_element = driver.find_element(
+                    By.XPATH, f"//{tag_name}[@href='{href}']"
+                )
+            else:
+                text = element["text"]
+                selenium_element = driver.find_element(
+                    By.XPATH, f"//{tag_name}[text()='{text}']"
+                )
+            actions = ActionChains(driver)
+            actions.move_to_element(selenium_element).click().perform()
+            await asyncio.sleep(target_wait_time)
+            result = driver.current_url
+        except Exception as e:
+            print(f"Error when extracting target url: {e}")
+            close_driver(driver)
+            return null_result
+        if result == base_url:
+            result = null_result
         close_driver(driver)
+        print(f"Extracted target url: {result}")
         return result
 
 
-# Extract all the links in the website; return a set of links in absolute path.
-# Links are from <a href="...">, <a href="javascript:;"> and clickable page number elements.
+def get_base_url(url: str) -> str:
+    parsed_url = urlparse(url)
+    return f"{parsed_url.scheme}://{parsed_url.netloc}"
+
+
+# TODO: deal with page number in single page apps like https://www.seiee.sjtu.edu.cn/xzzx_bszn_yjs.html
+# Extract all sub-urls in the website; return a set of sub-urls in absolute path; sub-urls starts with the base url.
+# Sub-urls are from <a href="...">, <a href="javascript:;"> and clickable page number elements.
 async def _extract_sub_urls_async(
     url: str,
     sema: asyncio.Semaphore,
     base_wait_time: float = 2.0,
     target_wait_time: float = 2.0,
 ):
+    base_url = get_base_url(url)
     driver = get_driver()
     driver.get(url)
     await asyncio.sleep(base_wait_time)
@@ -195,21 +217,62 @@ async def _extract_sub_urls_async(
 
     async def extract_links_from_dynamic_elements(elements):
         tasks = []
+        null_result = ""
         for element in elements:
             task = asyncio.create_task(
                 _extract_target_url_from_dynamic_element_async(
-                    element, url, sema, base_wait_time, target_wait_time
+                    element, url, sema, base_wait_time, target_wait_time, null_result
                 )
             )
             tasks.append(task)
-        return await asyncio.gather(*tasks)
+        result = await asyncio.gather(*tasks)
+        result = [link for link in result if link != null_result]
+        return result
 
     dynamic_links = await extract_links_from_dynamic_elements(dynamic_elements)
     static_links = await asyncio.to_thread(_extract_links_from_source, source)
+    static_links = [href_to_absolute(url, href) for href in static_links]
     js_elements = _extract_js_elements_from_links(static_links)
     js_links = await extract_links_from_dynamic_elements(js_elements)
     close_driver(driver)
-    return dynamic_links + js_links + static_links
+    result = dynamic_links + js_links + static_links
+    result = [link for link in result if link.startswith(base_url)]
+    return result
+
+
+def extract_sub_urls_recursively(
+    start_url: str,
+    max_depth: int = math.inf,
+    max_concurrency: int = 3,
+    base_wait_time: float = 2.0,
+    target_wait_time: float = 2.0,
+    visited_links_dict: StrSetDict = dict(),
+    current_depth=1,
+    recursion_callback: Callable[[StrSetDict, int], None] | None = None,
+):
+    sema = asyncio.Semaphore(max_concurrency)
+    visited = set()
+    file_write_lock = asyncio.Lock()
+
+    async def extract_function(start_url: str, wait_time: float = 2.0):
+        return await _extract_sub_urls_async(
+            start_url, sema, wait_time, target_wait_time
+        )
+
+    return asyncio.run(
+        _extract_links_recursively_helper(
+            start_url,
+            sema,
+            max_depth,
+            base_wait_time,
+            recursion_callback,
+            extract_function,
+            visited,
+            current_depth,
+            visited_links_dict,
+            file_write_lock,
+        )
+    )
 
 
 if __name__ == "__main__":
@@ -228,6 +291,6 @@ if __name__ == "__main__":
     #     print()
 
     sema = asyncio.Semaphore(3)
-    url = "https://www.sjtu.edu.cn/tg/index.html"
+    url = "https://www.seiee.sjtu.edu.cn/xzzx_bszn_yjs.html"
     result = asyncio.run(_extract_sub_urls_async(url, sema))
     print(result)

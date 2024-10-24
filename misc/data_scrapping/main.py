@@ -1,11 +1,21 @@
 DATA_DIR = "data"
-from scrapper import StrSetDict, extract_links_recursively
-from analyze import build_links_tree, get_cleaned_links_dict, get_kw_nodes, get_base_url
+from scrapper import (
+    StrSetDict,
+    extract_links_recursively,
+    get_base_url,
+    extract_sub_urls_recursively,
+)
+from analyze import build_links_tree, get_cleaned_links_dict, get_kw_nodes
 import json
 import argparse
 
 RAW_LINKS_FILE_PATH = f"{DATA_DIR}/links_raw.json"
 CLEANED_LINKS_FILE_PATH = f"{DATA_DIR}/links.json"
+SUB_URLS_DIR = f"{DATA_DIR}/sub_urls"
+
+
+def get_sub_urls_file_path(url: str) -> str:
+    return f"{SUB_URLS_DIR}/{url.replace('://', '_').strip('/').replace('/', '_')}.json"
 
 
 def count_links(links_dict: StrSetDict) -> int:
@@ -71,15 +81,36 @@ def anaylze_links():
     print(base_urls)
 
 
+def extract_sub_urls(url: str):
+    file_path = get_sub_urls_file_path(url)
+    visited_links, _ = load_links_and_depth(path=file_path)
+    extract_sub_urls_recursively(
+        url,
+        max_concurrency=10,
+        base_wait_time=2,
+        target_wait_time=2,
+        visited_links_dict=visited_links,
+        recursion_callback=lambda links_dict, depth: save_links(
+            links_dict, depth, path=file_path
+        ),
+    )
+    visited_links, current_depth = load_links_and_depth(path=file_path)
+    visited_links = get_cleaned_links_dict(visited_links, url)
+    save_links(visited_links, current_depth, path=file_path)
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--extract", action="store_true")
+    parser.add_argument("--extract-links", action="store_true")
+    parser.add_argument("--extract-sub-urls-from", type=str)
     parser.add_argument("--analyze", action="store_true")
     args = parser.parse_args()
-    if args.extract:
+    if args.extract_links:
         extract_links()
     if args.analyze:
         anaylze_links()
+    if args.extract_sub_urls_from:
+        extract_sub_urls(args.extract_sub_urls_from)
 
 
 if __name__ == "__main__":

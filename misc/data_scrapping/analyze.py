@@ -1,7 +1,6 @@
 # Extract all urls with "sjtu"
 from scrapper import StrSetDict
 import copy
-from urllib.parse import urlparse
 
 
 class TreeNode:
@@ -67,8 +66,3 @@ def get_kw_nodes(root: TreeNode, kw: str):
 
     search(root)
     return nodes
-
-
-def get_base_url(url: str) -> str:
-    parsed_url = urlparse(url)
-    return f"{parsed_url.scheme}://{parsed_url.netloc}"
