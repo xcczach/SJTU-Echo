@@ -7,14 +7,13 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver
 from bs4 import BeautifulSoup
 import time
-from urllib.parse import urljoin
 import asyncio
 import math
 from typing import Callable, TypeAlias, Awaitable
 import re
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode, urljoin
 
 
 def get_driver():
@@ -152,6 +151,39 @@ def _extract_js_elements_from_links(links: list[str]) -> list[str]:
     return [{"tag": "a", "href": link} for link in js_links]
 
 
+def _normalize_url(url):
+    parsed = urlparse(url)
+
+    scheme = parsed.scheme.lower()
+    netloc = parsed.netloc.lower()
+
+    if (scheme == "http" and parsed.port == 80) or (
+        scheme == "https" and parsed.port == 443
+    ):
+        netloc = parsed.hostname
+
+    path = parsed.path or "/"
+    if path != "/":
+        path = path.rstrip("/")
+
+    query = parsed.query
+    if query:
+        query_params = sorted(parse_qsl(query, keep_blank_values=True))
+        query = urlencode(query_params)
+
+    fragment = ""
+
+    normalized = urlunparse((scheme, netloc, path, "", query, fragment))
+    return normalized
+
+
+def _urls_are_equal(url1, url2):
+    """
+    比较两个URL是否相同。
+    """
+    return _normalize_url(url1) == _normalize_url(url2)
+
+
 async def _extract_target_url_from_dynamic_element_async(
     element: dict[str, str],
     base_url: str,
@@ -160,7 +192,6 @@ async def _extract_target_url_from_dynamic_element_async(
     target_wait_time: float = 2.0,
     null_result="",
 ) -> str:
-    print(f"Extracting target url from {element}")
     async with sema:
         driver = get_driver()
         driver.get(base_url)
@@ -185,7 +216,7 @@ async def _extract_target_url_from_dynamic_element_async(
             print(f"Error when extracting target url: {e}")
             close_driver(driver)
             return null_result
-        if result == base_url:
+        if _urls_are_equal(result, base_url):
             result = null_result
         close_driver(driver)
         print(f"Extracted target url: {result}")
