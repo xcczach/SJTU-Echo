@@ -1,5 +1,7 @@
 # Extract all urls with "sjtu"
 from scrapper import StrSetDict
+import copy
+from urllib.parse import urlparse
 
 
 class TreeNode:
@@ -18,7 +20,7 @@ class TreeNode:
 
 
 # Remove circular references and duplicates
-def get_cleaned_links_dict(links_dict: StrSetDict):
+def get_cleaned_links_dict(links_dict: StrSetDict, start_url: str):
     visited = set()
     cleaned_dict = dict()
 
@@ -32,8 +34,7 @@ def get_cleaned_links_dict(links_dict: StrSetDict):
             for child_url in cleaned_dict[url]:
                 visit(child_url)
 
-    for url in links_dict:
-        visit(url)
+    visit(start_url)
 
     return cleaned_dict
 
@@ -43,7 +44,6 @@ def build_links_tree(urls_dict: StrSetDict, root_url: str):
 
     def add_children(node: TreeNode, url: str):
         if url in urls_dict:
-            print(f"Current url: {url}")
             for child_url in urls_dict[url]:
                 child_node = TreeNode(child_url)
                 node.add_child(child_node)
@@ -51,3 +51,24 @@ def build_links_tree(urls_dict: StrSetDict, root_url: str):
 
     add_children(root, root_url)
     return root
+
+
+# Get all nodes that contain a keyword
+def get_kw_nodes(root: TreeNode, kw: str):
+    nodes: list[TreeNode] = []
+
+    def search(node: TreeNode):
+        if kw in node.value:
+            copied_node = copy.deepcopy(node)
+            copied_node.children = []
+            nodes.append(copied_node)
+        for child in node.children:
+            search(child)
+
+    search(root)
+    return nodes
+
+
+def get_base_url(url: str) -> str:
+    parsed_url = urlparse(url)
+    return f"{parsed_url.scheme}://{parsed_url.netloc}"
