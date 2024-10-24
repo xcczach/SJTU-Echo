@@ -71,6 +71,8 @@ async def _extract_links_recursively_helper(
             if recursion_callback is not None:
                 async with _file_write_lock:
                     recursion_callback(_result_dict, _depth)
+        else:
+            links = _result_dict[start_url]
         tasks = []
         for link in links:
             if link not in _visited:
@@ -89,7 +91,6 @@ async def _extract_links_recursively_helper(
                 )
                 tasks.append(task)
         await asyncio.gather(*tasks)
-    return _result_dict
 
 
 def extract_links_recursively(
@@ -102,7 +103,7 @@ def extract_links_recursively(
     recursion_callback: Callable[[StrSetDict, int], None] | None = None,
 ):
     sema = asyncio.Semaphore(max_concurrency)
-    visited = set(visited_links_dict.keys())
+    visited = set()
     file_write_lock = asyncio.Lock()
     return asyncio.run(
         _extract_links_recursively_helper(

@@ -26,7 +26,7 @@ def load_links_and_depth() -> tuple[StrSetDict, int]:
             data = json.load(f)
         return data["links"], data["depth"]
     except:
-        print(f"Failed to load links from {LINKS_FILE_PATH}")
+        print(f"Failed to load links from {LINKS_FILE_PATH}, starting from scratch")
         return dict(), 1
 
 
@@ -40,7 +40,7 @@ def get_depth(links_dict: StrSetDict, start_url: str) -> int:
 
 def extract_links():
     visited_links, _ = load_links_and_depth()
-    links = extract_links_recursively(
+    extract_links_recursively(
         "https://www.sjtu.edu.cn/",
         max_depth=2,
         max_concurrency=10,
@@ -48,8 +48,8 @@ def extract_links():
         visited_links_dict=visited_links,
         recursion_callback=save_links,
     )
-    _, current_depth = load_links_and_depth()
-    save_links(links, current_depth)
+    visited_links, current_depth = load_links_and_depth()
+    save_links(visited_links, current_depth)
 
 
 def main():
