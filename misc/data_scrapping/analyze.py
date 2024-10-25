@@ -35,6 +35,9 @@ def get_cleaned_links_dict(links_dict: StrSetDict, start_url: str):
             cleaned_dict[url] = [
                 child_url for child_url in cleaned_dict[url] if child_url not in visited
             ]
+            if not cleaned_dict[url]:
+                del cleaned_dict[url]
+                return
             for child_url in cleaned_dict[url]:
                 visited.add(child_url)
             for child_url in cleaned_dict[url]:
