@@ -12,6 +12,7 @@ from analyze import (
 )
 import json
 import argparse
+import re
 
 RAW_LINKS_FILE_PATH = f"{DATA_DIR}/links_raw.json"
 CLEANED_LINKS_FILE_PATH = f"{DATA_DIR}/links.json"
@@ -82,19 +83,21 @@ def anaylze_links():
     print(base_urls)
 
 
-def preclean_sub_urls(url: str):
-    visited_links, _ = load_links_and_depth(
-        path=get_sub_urls_file_path(url, cleaned=False)
-    )
-    visited_links = get_cleaned_links_dict(visited_links, url)
-    save_links(
-        visited_links,
-        get_depth(visited_links, url),
-        path=get_sub_urls_file_path(url, cleaned=True),
-    )
-
-
 def extract_sub_urls(url: str):
+    def preclean_sub_urls(url: str):
+        visited_links, _ = load_links_and_depth(
+            path=get_sub_urls_file_path(url, cleaned=False)
+        )
+        visited_links = get_cleaned_links_dict(visited_links, url)
+        save_links(
+            visited_links,
+            get_depth(visited_links, url),
+            path=get_sub_urls_file_path(url, cleaned=True),
+        )
+
+    def link_filter(url: str):
+        return not bool(re.search(r"/\d+\.html$", url))
+
     preclean_sub_urls(url)
     file_path = get_sub_urls_file_path(url, cleaned=False)
     visited_links, _ = load_links_and_depth(path=file_path)
@@ -108,6 +111,7 @@ def extract_sub_urls(url: str):
         recursion_callback=lambda links_dict, depth: save_links(
             links_dict, depth, path=file_path
         ),
+        link_filter=link_filter,
     )
     visited_links, current_depth = load_links_and_depth(path=file_path)
     visited_links = get_cleaned_links_dict(visited_links, url)

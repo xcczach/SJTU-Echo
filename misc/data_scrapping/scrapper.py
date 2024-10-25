@@ -70,6 +70,7 @@ async def _extract_links_recursively_helper(
     extract_function: Callable[
         [str, float], Awaitable[list[str]]
     ] = _extract_links_async,
+    link_filter: Callable[[str], bool] | None = None,
     _visited=set(),
     _depth=1,
     _result_dict: StrSetDict = dict(),
@@ -89,7 +90,7 @@ async def _extract_links_recursively_helper(
         links = _result_dict[start_url]
     tasks = []
     for link in links:
-        if link not in _visited:
+        if link not in _visited and (link_filter is None or link_filter(link)):
             task = asyncio.create_task(
                 _extract_links_recursively_helper(
                     link,
@@ -97,6 +98,7 @@ async def _extract_links_recursively_helper(
                     wait_time,
                     recursion_callback,
                     extract_function,
+                    link_filter,
                     _visited,
                     _depth + 1,
                     _result_dict,
@@ -115,6 +117,7 @@ def extract_links_recursively(
     visited_links_dict: StrSetDict = dict(),
     current_depth=1,
     recursion_callback: Callable[[StrSetDict, int], None] | None = None,
+    link_filter: Callable[[str], bool] | None = None,
 ):
     start_url = _normalize_url(start_url)
     sema = asyncio.Semaphore(max_concurrency)
@@ -131,6 +134,7 @@ def extract_links_recursively(
             wait_time,
             recursion_callback,
             extract_function,
+            link_filter,
             visited,
             current_depth,
             visited_links_dict,
@@ -459,6 +463,7 @@ def extract_sub_urls_recursively(
     visited_links_dict: StrSetDict = dict(),
     current_depth=1,
     recursion_callback: Callable[[StrSetDict, int], None] | None = None,
+    link_filter: Callable[[str], bool] | None = None,
 ):
     start_url = _normalize_url(start_url)
     sema = asyncio.Semaphore(max_concurrency)
@@ -478,6 +483,7 @@ def extract_sub_urls_recursively(
             base_wait_time,
             recursion_callback,
             extract_function,
+            link_filter,
             visited,
             current_depth,
             visited_links_dict,
