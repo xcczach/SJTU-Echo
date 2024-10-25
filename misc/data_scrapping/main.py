@@ -5,7 +5,11 @@ from scrapper import (
     get_base_url,
     extract_sub_urls_recursively,
 )
-from analyze import build_links_tree, get_cleaned_links_dict, get_kw_nodes
+from analyze import (
+    build_links_tree,
+    get_cleaned_links_dict,
+    get_kw_nodes,
+)
 import json
 import argparse
 
@@ -14,8 +18,8 @@ CLEANED_LINKS_FILE_PATH = f"{DATA_DIR}/links.json"
 SUB_URLS_DIR = f"{DATA_DIR}/sub_urls"
 
 
-def get_sub_urls_file_path(url: str) -> str:
-    return f"{SUB_URLS_DIR}/{url.replace('://', '_').strip('/').replace('/', '_')}.json"
+def get_sub_urls_file_path(url: str, cleaned: bool = False) -> str:
+    return f"{SUB_URLS_DIR}/{url.replace('://', '_').strip('/').replace('/', '_')}{'_raw' if not cleaned else ''}.json"
 
 
 def count_links(links_dict: StrSetDict) -> int:
@@ -43,11 +47,8 @@ def load_links_and_depth(path: str = RAW_LINKS_FILE_PATH) -> tuple[StrSetDict, i
 
 
 def get_depth(links_dict: StrSetDict, start_url: str) -> int:
-    depth = 0
-    for url in links_dict:
-        if start_url in links_dict[url]:
-            depth += 1
-    return depth
+    links_tree = build_links_tree(links_dict, start_url)
+    return links_tree.depth
 
 
 def extract_links():
@@ -81,8 +82,21 @@ def anaylze_links():
     print(base_urls)
 
 
+def preclean_sub_urls(url: str):
+    visited_links, _ = load_links_and_depth(
+        path=get_sub_urls_file_path(url, cleaned=False)
+    )
+    visited_links = get_cleaned_links_dict(visited_links, url)
+    save_links(
+        visited_links,
+        get_depth(visited_links, url),
+        path=get_sub_urls_file_path(url, cleaned=True),
+    )
+
+
 def extract_sub_urls(url: str):
-    file_path = get_sub_urls_file_path(url)
+    preclean_sub_urls(url)
+    file_path = get_sub_urls_file_path(url, cleaned=False)
     visited_links, _ = load_links_and_depth(path=file_path)
     extract_sub_urls_recursively(
         url,
@@ -97,6 +111,7 @@ def extract_sub_urls(url: str):
     )
     visited_links, current_depth = load_links_and_depth(path=file_path)
     visited_links = get_cleaned_links_dict(visited_links, url)
+    file_path = get_sub_urls_file_path(url, cleaned=True)
     save_links(visited_links, current_depth, path=file_path)
 
 

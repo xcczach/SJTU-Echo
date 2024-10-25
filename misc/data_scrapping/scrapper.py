@@ -75,12 +75,12 @@ async def _extract_links_recursively_helper(
     _result_dict: StrSetDict = dict(),
     _file_write_lock: asyncio.Lock = asyncio.Lock(),
 ):
-    start_url = _normalize_url(start_url)
     if start_url in _visited or _depth > max_depth:
         return
     _visited.add(start_url)
     if start_url not in _result_dict:
         links = await extract_function(start_url, wait_time)
+        links = [_normalize_url(link) for link in links]
         _result_dict[start_url] = links
         if recursion_callback is not None:
             async with _file_write_lock:
@@ -116,6 +116,7 @@ def extract_links_recursively(
     current_depth=1,
     recursion_callback: Callable[[StrSetDict, int], None] | None = None,
 ):
+    start_url = _normalize_url(start_url)
     sema = asyncio.Semaphore(max_concurrency)
     visited = set()
     file_write_lock = asyncio.Lock()
@@ -223,14 +224,13 @@ async def _extract_target_url_from_dynamic_element_async(
             actions.move_to_element(selenium_element).click().perform()
             await asyncio.sleep(target_wait_time)
             result = driver.current_url
-            print(f"Extracted target url?: {result}")
         except Exception as e:
             print(f"Error when extracting target url: {e}")
             close_driver(driver)
             return null_result
         if _urls_are_equal(result, base_url):
             result = null_result
-        print(f"Extracted target url: {result}")
+        print(f"Extracted target url: {result} from url: {base_url}")
         close_driver(driver)
         return result
 
@@ -435,13 +435,13 @@ async def _extract_sub_urls_async(
             return result
 
         dynamic_links = await extract_links_from_dynamic_elements(dynamic_elements)
-        print(f"Extracted dynamic links: {dynamic_links}")
+        print(f"Extracted dynamic links: {dynamic_links} from {url}")
         static_links = await asyncio.to_thread(_extract_links_from_source, source)
         static_links = [href_to_absolute(url, href) for href in static_links]
-        print(f"Extracted static links: {static_links}")
+        print(f"Extracted static links: {static_links} from {url}")
         js_elements = _extract_js_elements_from_links(static_links)
         js_links = await extract_links_from_dynamic_elements(js_elements)
-        print(f"Extracted js links: {js_links}")
+        print(f"Extracted js links: {js_links} from {url}")
         close_driver(driver)
     result = dynamic_links + js_links + static_links
     result = [link for link in result if link.startswith(base_url)]
@@ -460,6 +460,7 @@ def extract_sub_urls_recursively(
     current_depth=1,
     recursion_callback: Callable[[StrSetDict, int], None] | None = None,
 ):
+    start_url = _normalize_url(start_url)
     sema = asyncio.Semaphore(max_concurrency)
     sub_sema = asyncio.Semaphore(max_sub_concurrency)
     visited = set()
