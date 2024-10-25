@@ -39,7 +39,7 @@ def _extract_links_from_source(source: str):
 
 
 # Extract all the links in the website; return a set of links in absolute path.
-def extract_links(driver: WebDriver, url: str, wait_time: float = 2.0):
+def _extract_links(driver: WebDriver, url: str, wait_time: float = 2.0):
     driver.get(url)
     time.sleep(wait_time)
     links = _extract_links_from_source(driver.page_source)
@@ -47,11 +47,16 @@ def extract_links(driver: WebDriver, url: str, wait_time: float = 2.0):
     return links
 
 
-async def extract_links_async(start_url: str, wait_time: float = 2.0):
-    driver = get_driver()
-    links = await asyncio.to_thread(extract_links, driver, start_url, wait_time)
-    close_driver(driver)
-    return links
+async def _extract_links_async(
+    start_url: str,
+    sema: asyncio.Semaphore,
+    wait_time: float = 2.0,
+):
+    async with sema:
+        driver = get_driver()
+        links = await asyncio.to_thread(_extract_links, driver, start_url, wait_time)
+        close_driver(driver)
+        return links
 
 
 StrSetDict: TypeAlias = dict[str, list[str]]
@@ -59,49 +64,47 @@ StrSetDict: TypeAlias = dict[str, list[str]]
 
 async def _extract_links_recursively_helper(
     start_url: str,
-    sema: asyncio.Semaphore,
     max_depth: int = math.inf,
     wait_time: float = 2.0,
     recursion_callback: Callable[[StrSetDict, int], None] | None = None,
     extract_function: Callable[
         [str, float], Awaitable[list[str]]
-    ] = extract_links_async,
+    ] = _extract_links_async,
     _visited=set(),
     _depth=1,
     _result_dict: StrSetDict = dict(),
     _file_write_lock: asyncio.Lock = asyncio.Lock(),
 ):
+    start_url = _normalize_url(start_url)
     if start_url in _visited or _depth > max_depth:
         return
-    async with sema:
-        _visited.add(start_url)
-        if start_url not in _result_dict:
-            links = await extract_function(start_url, wait_time)
-            _result_dict[start_url] = links
-            if recursion_callback is not None:
-                async with _file_write_lock:
-                    recursion_callback(_result_dict, _depth)
-        else:
-            links = _result_dict[start_url]
-        tasks = []
-        for link in links:
-            if link not in _visited:
-                task = asyncio.create_task(
-                    _extract_links_recursively_helper(
-                        link,
-                        sema,
-                        max_depth,
-                        wait_time,
-                        recursion_callback,
-                        extract_function,
-                        _visited,
-                        _depth + 1,
-                        _result_dict,
-                        _file_write_lock,
-                    )
+    _visited.add(start_url)
+    if start_url not in _result_dict:
+        links = await extract_function(start_url, wait_time)
+        _result_dict[start_url] = links
+        if recursion_callback is not None:
+            async with _file_write_lock:
+                recursion_callback(_result_dict, _depth)
+    else:
+        links = _result_dict[start_url]
+    tasks = []
+    for link in links:
+        if link not in _visited:
+            task = asyncio.create_task(
+                _extract_links_recursively_helper(
+                    link,
+                    max_depth,
+                    wait_time,
+                    recursion_callback,
+                    extract_function,
+                    _visited,
+                    _depth + 1,
+                    _result_dict,
+                    _file_write_lock,
                 )
-                tasks.append(task)
-        await asyncio.gather(*tasks)
+            )
+            tasks.append(task)
+    await asyncio.gather(*tasks)
 
 
 def extract_links_recursively(
@@ -116,14 +119,17 @@ def extract_links_recursively(
     sema = asyncio.Semaphore(max_concurrency)
     visited = set()
     file_write_lock = asyncio.Lock()
+
+    async def extract_function(start_url: str, wait_time: float = 2.0):
+        return await _extract_links_async(start_url, sema, wait_time)
+
     return asyncio.run(
         _extract_links_recursively_helper(
             start_url,
-            sema,
             max_depth,
             wait_time,
             recursion_callback,
-            extract_links_async,
+            extract_function,
             visited,
             current_depth,
             visited_links_dict,
@@ -192,7 +198,10 @@ async def _extract_target_url_from_dynamic_element_async(
     target_wait_time: float = 2.0,
     null_result="",
 ) -> str:
+    print(f"Extracting target url from dynamic element: {element}")
+    print(f"Sema: {sema._value}")
     async with sema:
+        print("Acquired semaphore")
         driver = get_driver()
         driver.get(base_url)
         await asyncio.sleep(base_wait_time)
@@ -203,23 +212,26 @@ async def _extract_target_url_from_dynamic_element_async(
                 selenium_element = driver.find_element(
                     By.XPATH, f"//{tag_name}[@href='{href}']"
                 )
+                print("Found element by href", selenium_element)
             else:
                 text = element["text"]
                 selenium_element = driver.find_element(
                     By.XPATH, f"//{tag_name}[text()='{text}']"
                 )
             actions = ActionChains(driver)
+            print(selenium_element)
             actions.move_to_element(selenium_element).click().perform()
             await asyncio.sleep(target_wait_time)
             result = driver.current_url
+            print(f"Extracted target url?: {result}")
         except Exception as e:
             print(f"Error when extracting target url: {e}")
             close_driver(driver)
             return null_result
         if _urls_are_equal(result, base_url):
             result = null_result
-        close_driver(driver)
         print(f"Extracted target url: {result}")
+        close_driver(driver)
         return result
 
 
@@ -228,46 +240,212 @@ def get_base_url(url: str) -> str:
     return f"{parsed_url.scheme}://{parsed_url.netloc}"
 
 
+def _is_file_url(url: str) -> bool:
+    suffix = url.split(".")[-1]
+    return suffix in [
+        "pdf",
+        "doc",
+        "docx",
+        "ppt",
+        "pptx",
+        "xls",
+        "xlsx",
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "zip",
+        "rar",
+        "7z",
+        "tar",
+        "gz",
+        "mp4",
+        "avi",
+        "mkv",
+        "mov",
+        "flv",
+        "mp3",
+        "wav",
+        "wma",
+        "flac",
+        "aac",
+        "m4a",
+        "ogg",
+        "zip",
+        "rar",
+        "7z",
+        "tar",
+        "gz",
+        "exe",
+        "msi",
+        "apk",
+        "dmg",
+        "iso",
+        "torrent",
+        "epub",
+        "mobi",
+        "azw",
+        "azw3",
+        "djvu",
+        "fb2",
+        "ibook",
+        "pdb",
+        "cbr",
+        "cbz",
+        "xps",
+        "oxps",
+        "ps",
+        "eps",
+        "ai",
+        "svg",
+        "webp",
+        "ico",
+        "cur",
+        "bmp",
+        "tiff",
+        "tif",
+        "psd",
+        "ai",
+        "sketch",
+        "dwg",
+        "dxf",
+        "3ds",
+        "stl",
+        "obj",
+        "fbx",
+        "dae",
+        "blend",
+        "max",
+        "ma",
+        "mb",
+        "lwo",
+        "lws",
+        "sldprt",
+        "sldasm",
+        "igs",
+        "stp",
+        "stl",
+        "x_t",
+        "x_b",
+        "prt",
+        "asm",
+        "neu",
+        "3dm",
+        "3dxml",
+        "catpart",
+        "catproduct",
+        "cgr",
+        "jt",
+        "xas",
+        "xpr",
+        "xpl",
+        "xpf",
+        "xpf",
+        "xgl",
+        "zof",
+        "wrl",
+        "wrz",
+        "x3d",
+        "x3dv",
+        "x3db",
+        "x3dvz",
+        "x3dbz",
+        "vrml",
+        "gltf",
+        "glb",
+        "usdz",
+        "obj",
+        "mtl",
+        "fbx",
+        "dae",
+        "3ds",
+        "stl",
+        "ply",
+        "x",
+        "wrl",
+        "wrz",
+        "x3d",
+        "x3dv",
+        "x3db",
+        "x3dvz",
+        "x3dbz",
+        "vrml",
+        "gltf",
+        "glb",
+        "usdz",
+        "obj",
+        "mtl",
+        "fbx",
+        "dae",
+        "3ds",
+        "stl",
+        "ply",
+        "x",
+        "wrl",
+        "wrz",
+    ]
+
+
 # TODO: deal with page number in single page apps like https://www.seiee.sjtu.edu.cn/xzzx_bszn_yjs.html
 # Extract all sub-urls in the website; return a set of sub-urls in absolute path; sub-urls starts with the base url.
 # Sub-urls are from <a href="...">, <a href="javascript:;"> and clickable page number elements.
 async def _extract_sub_urls_async(
     url: str,
     sema: asyncio.Semaphore,
+    sub_sema: asyncio.Semaphore,
     base_wait_time: float = 2.0,
     target_wait_time: float = 2.0,
 ):
+    print(f"Sema: {sema._value}")
+    print(f"Extracting links from {url}")
     base_url = get_base_url(url)
-    driver = get_driver()
-    driver.get(url)
-    await asyncio.sleep(base_wait_time)
-    source = driver.page_source
-    dynamic_elements = await asyncio.to_thread(
-        _extract_switch_page_elements_from_source, source
-    )
+    if _is_file_url(url):
+        print(f"{url} is a file url")
+        return []
+    async with sema:
+        driver = get_driver()
+        driver.get(url)
+        print(f"Got driver for {url}")
+        print(f"Waiting for {base_wait_time} seconds")
+        await asyncio.sleep(base_wait_time)
+        source = driver.page_source
+        print(f"Extracted source from {url}")
+        dynamic_elements = await asyncio.to_thread(
+            _extract_switch_page_elements_from_source, source
+        )
+        print("Extracted dynamic elements: ", len(dynamic_elements))
 
-    async def extract_links_from_dynamic_elements(elements):
-        tasks = []
-        null_result = ""
-        for element in elements:
-            task = asyncio.create_task(
-                _extract_target_url_from_dynamic_element_async(
-                    element, url, sema, base_wait_time, target_wait_time, null_result
+        async def extract_links_from_dynamic_elements(elements):
+            tasks = []
+            null_result = ""
+            for element in elements:
+                task = asyncio.create_task(
+                    _extract_target_url_from_dynamic_element_async(
+                        element,
+                        url,
+                        sub_sema,
+                        base_wait_time,
+                        target_wait_time,
+                        null_result,
+                    )
                 )
-            )
-            tasks.append(task)
-        result = await asyncio.gather(*tasks)
-        result = [link for link in result if link != null_result]
-        return result
+                tasks.append(task)
+            result = await asyncio.gather(*tasks)
+            result = [link for link in result if link != null_result]
+            return result
 
-    dynamic_links = await extract_links_from_dynamic_elements(dynamic_elements)
-    static_links = await asyncio.to_thread(_extract_links_from_source, source)
-    static_links = [href_to_absolute(url, href) for href in static_links]
-    js_elements = _extract_js_elements_from_links(static_links)
-    js_links = await extract_links_from_dynamic_elements(js_elements)
-    close_driver(driver)
+        dynamic_links = await extract_links_from_dynamic_elements(dynamic_elements)
+        print(f"Extracted dynamic links: {dynamic_links}")
+        static_links = await asyncio.to_thread(_extract_links_from_source, source)
+        static_links = [href_to_absolute(url, href) for href in static_links]
+        print(f"Extracted static links: {static_links}")
+        js_elements = _extract_js_elements_from_links(static_links)
+        js_links = await extract_links_from_dynamic_elements(js_elements)
+        print(f"Extracted js links: {js_links}")
+        close_driver(driver)
     result = dynamic_links + js_links + static_links
     result = [link for link in result if link.startswith(base_url)]
+    print(f"Extracted all links from {url}: {result}")
     return result
 
 
@@ -275,6 +453,7 @@ def extract_sub_urls_recursively(
     start_url: str,
     max_depth: int = math.inf,
     max_concurrency: int = 3,
+    max_sub_concurrency: int = 3,
     base_wait_time: float = 2.0,
     target_wait_time: float = 2.0,
     visited_links_dict: StrSetDict = dict(),
@@ -282,18 +461,18 @@ def extract_sub_urls_recursively(
     recursion_callback: Callable[[StrSetDict, int], None] | None = None,
 ):
     sema = asyncio.Semaphore(max_concurrency)
+    sub_sema = asyncio.Semaphore(max_sub_concurrency)
     visited = set()
     file_write_lock = asyncio.Lock()
 
     async def extract_function(start_url: str, wait_time: float = 2.0):
         return await _extract_sub_urls_async(
-            start_url, sema, wait_time, target_wait_time
+            start_url, sema, sub_sema, wait_time, target_wait_time
         )
 
     return asyncio.run(
         _extract_links_recursively_helper(
             start_url,
-            sema,
             max_depth,
             base_wait_time,
             recursion_callback,

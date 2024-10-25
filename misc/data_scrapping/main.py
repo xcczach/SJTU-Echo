@@ -86,7 +86,8 @@ def extract_sub_urls(url: str):
     visited_links, _ = load_links_and_depth(path=file_path)
     extract_sub_urls_recursively(
         url,
-        max_concurrency=10,
+        max_concurrency=3,
+        max_sub_concurrency=5,
         base_wait_time=2,
         target_wait_time=2,
         visited_links_dict=visited_links,
