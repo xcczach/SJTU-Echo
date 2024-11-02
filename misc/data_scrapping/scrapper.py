@@ -5,6 +5,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
 import time
 import asyncio
@@ -14,6 +15,9 @@ import re
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode, urljoin
+import aiohttp
+from readability import Document
+from datetime import datetime, timezone
 
 
 def get_driver():
@@ -492,7 +496,86 @@ def extract_sub_urls_recursively(
     )
 
 
+class HTMLContent:
+    def __init__(self, url: str, content: dict, scraped_at: float):
+        self.url = url
+        self.content = content
+        self.scraped_at = scraped_at
+
+    def to_dict(self):
+        return {
+            "url": self.url,
+            "content": self.content,
+            "scraped_at": self.scraped_at,
+        }
+
+
+def _get_time_now():
+    return datetime.now(timezone.utc).timestamp()
+
+
+async def _fetch_content_static_async(url: str, session: aiohttp.ClientSession):
+    async with session.get(url) as response:
+        return await response.text()
+
+
+def _fetch_content_dynamic(url: str, max_wait_time: float = 10.0):
+    driver = get_driver()
+    driver.get(url)
+    WebDriverWait(driver, max_wait_time).until(
+        lambda d: d.execute_script("return document.readyState") == "complete"
+    )
+    content = driver.page_source
+    close_driver(driver)
+    return content
+
+
+async def _fetch_content_dynamic_async(url: str, max_wait_time: float = 10.0):
+    return await asyncio.to_thread(_fetch_content_dynamic, url, max_wait_time)
+
+
+def readability_process_content(content: str):
+    doc = Document(content)
+    doc_content = {
+        "title": doc.title(),
+        "content": doc.summary(),
+    }
+    return doc_content
+
+
+def get_raw_content(content: str):
+    return content
+
+
+async def _extract_content_static_async_helper(
+    url: str,
+    session: aiohttp.ClientSession,
+    process_function: Callable[[str], dict] = readability_process_content,
+):
+    content = await _fetch_content_static_async(url, session)
+    doc_content = process_function(content)
+    return HTMLContent(url, doc_content, _get_time_now())
+
+
+async def extract_content_static_async(url: str, session: aiohttp.ClientSession = None):
+    if session is None:
+        async with aiohttp.ClientSession() as session:
+            return await _extract_content_static_async_helper(url, session)
+    return await _extract_content_static_async_helper(url, session)
+
+
+async def extract_content_dynamic_async(
+    url: str,
+    process_function: Callable[[str], dict] = readability_process_content,
+    max_wait_time: float = 10.0,
+):
+    content = await _fetch_content_dynamic_async(url, max_wait_time)
+    doc_content = process_function(content)
+    return HTMLContent(url, doc_content, _get_time_now())
+
+
 if __name__ == "__main__":
+    pass
     # driver = get_driver()
     # url = "https://www.sjtu.edu.cn/"
     # print(f"Extracting links from {url}")
@@ -507,7 +590,23 @@ if __name__ == "__main__":
     #     print(len(links))
     #     print()
 
-    sema = asyncio.Semaphore(3)
-    url = "https://www.seiee.sjtu.edu.cn/xzzx_bszn_yjs.html"
-    result = asyncio.run(_extract_sub_urls_async(url, sema))
-    print(result)
+    # sema = asyncio.Semaphore(3)
+    # url = "https://www.seiee.sjtu.edu.cn/xzzx_bszn_yjs.html"
+    # result = asyncio.run(_extract_sub_urls_async(url, sema))
+    # print(result)
+
+    async def test_scrap_content_static():
+        async with aiohttp.ClientSession() as session:
+            url = "https://www.sjtu.edu.cn/"
+            content = await extract_content_static_async(url, session)
+            print(content.to_dict())
+
+    async def test_scrap_content_dynamic():
+        url = "https://www.sjtu.edu.cn/"
+        content = await extract_content_dynamic_async(
+            url, process_function=get_raw_content
+        )
+        print(content.to_dict())
+
+    asyncio.run(test_scrap_content_static())
+    asyncio.run(test_scrap_content_dynamic())
