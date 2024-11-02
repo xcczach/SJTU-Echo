@@ -538,7 +538,7 @@ def readability_process_content(content: str):
     doc = Document(content)
     doc_content = {
         "title": doc.title(),
-        "content": doc.summary(),
+        "body": doc.summary(),
     }
     return doc_content
 
@@ -557,10 +557,16 @@ async def _extract_content_static_async_helper(
     return HTMLContent(url, doc_content, _get_time_now())
 
 
-async def extract_content_static_async(url: str, session: aiohttp.ClientSession = None):
+async def extract_content_static_async(
+    url: str,
+    session: aiohttp.ClientSession | None = None,
+    process_function: Callable[[str], dict] = readability_process_content,
+):
     if session is None:
         async with aiohttp.ClientSession() as session:
-            return await _extract_content_static_async_helper(url, session)
+            return await _extract_content_static_async_helper(
+                url, session, process_function
+            )
     return await _extract_content_static_async_helper(url, session)
 
 
@@ -598,7 +604,9 @@ if __name__ == "__main__":
     async def test_scrap_content_static():
         async with aiohttp.ClientSession() as session:
             url = "https://www.sjtu.edu.cn/"
-            content = await extract_content_static_async(url, session)
+            content = await extract_content_static_async(
+                url, session, process_function=get_raw_content
+            )
             print(content.to_dict())
 
     async def test_scrap_content_dynamic():

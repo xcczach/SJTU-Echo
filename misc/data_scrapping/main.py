@@ -4,6 +4,10 @@ from scrapper import (
     extract_links_recursively,
     get_base_url,
     extract_sub_urls_recursively,
+    extract_content_dynamic_async,
+    extract_content_static_async,
+    get_raw_content,
+    HTMLContent,
 )
 from analyze import (
     build_links_tree,
@@ -13,9 +17,12 @@ from analyze import (
 import json
 import argparse
 import re
+import aiohttp
+import asyncio
 
 RAW_LINKS_FILE_PATH = f"{DATA_DIR}/links_raw.json"
 CLEANED_LINKS_FILE_PATH = f"{DATA_DIR}/links.json"
+SAMPLE_CONTENTS_PATH = f"{DATA_DIR}/sample_contents.json"
 SUB_URLS_DIR = f"{DATA_DIR}/sub_urls"
 
 
@@ -35,6 +42,12 @@ def save_links(links_dict: StrSetDict, depth: int, path: str = RAW_LINKS_FILE_PA
     with open(path, "w") as f:
         json.dump(wrap_links_and_depth(links_dict, depth), f)
     print(f"{count_links(links_dict)} links saved to {path}")
+
+
+def save_contents(contents: list[HTMLContent], path: str = SAMPLE_CONTENTS_PATH):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump([content.to_dict() for content in contents], f, ensure_ascii=False)
+    print(f"{len(contents)} contents saved to {path}")
 
 
 def load_links_and_depth(path: str = RAW_LINKS_FILE_PATH) -> tuple[StrSetDict, int]:
@@ -119,11 +132,37 @@ def extract_sub_urls(url: str):
     save_links(visited_links, current_depth, path=file_path)
 
 
+def extract_content(urls: list[str]):
+    async def extract_content_async(urls: list[str]):
+        async with aiohttp.ClientSession() as session:
+            tasks = [extract_content_static_async(url, session) for url in urls]
+            static_results = await asyncio.gather(*tasks)
+
+        DYNAMIC_RESCRAP_THRESHOLD = 400
+        dynamic_urls = [
+            item.url
+            for item in static_results
+            if len(item.content["body"]) < DYNAMIC_RESCRAP_THRESHOLD
+        ]
+        static_results = [
+            item for item in static_results if item.url not in dynamic_urls
+        ]
+        tasks = [
+            extract_content_dynamic_async(url, get_raw_content) for url in dynamic_urls
+        ]
+        dynamic_results = await asyncio.gather(*tasks)
+        return static_results + dynamic_results
+
+    results = asyncio.run(extract_content_async(urls))
+    save_contents(results)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--extract-links", action="store_true")
     parser.add_argument("--extract-sub-urls-from", type=str)
     parser.add_argument("--analyze", action="store_true")
+    parser.add_argument("--extract-content-from", type=str, nargs="+")
     args = parser.parse_args()
     if args.extract_links:
         extract_links()
@@ -131,6 +170,8 @@ def main():
         anaylze_links()
     if args.extract_sub_urls_from:
         extract_sub_urls(args.extract_sub_urls_from)
+    if args.extract_content_from:
+        extract_content(args.extract_content_from)
 
 
 if __name__ == "__main__":
