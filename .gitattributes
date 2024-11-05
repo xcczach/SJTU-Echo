@@ -1,1 +1,2 @@
 *.json filter=lfs diff=lfs merge=lfs -text
+misc/rag_test/data/* filter=lfs diff=lfs merge=lfs -text
