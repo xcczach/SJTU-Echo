@@ -1,0 +1,7 @@
+langchain
+langchain-community
+langchain-chroma
+jq
+langchain-huggingface
+huggingface_hub
+accelerate>=0.26.0
