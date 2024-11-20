@@ -1,9 +1,11 @@
 import json
 from typing import Iterator
-
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.document_loaders import BaseLoader
 from langchain_core.documents import Document
-
+from langchain import hub
 def _get_content_by_key_recursive(data:dict, key:str):
     for k, v in data.items():
         if k == key:
@@ -100,44 +102,90 @@ class QwenModel(BaseChatModel):
         return {"model": self.model}
 
 
-if __name__ == "__main__":
-    question = input("Enter your question (enter nothing for sample question): ")
-    if not question:
-        question = "医工交叉研究基金的申报要求是什么"
-    print("Question entered: ", question)
-    loader = HTMLJSONLoader("/root/SJTU-Echo/misc/rag_test/data/sample_contents.json")
-    # for doc in loader.lazy_load():
-    #     print(doc.page_content)
-    #     print(doc.metadata)
-    #     print("===")
+
+
+# if __name__ == "__main__":
+#     question = input("Enter your question (enter nothing for sample question): ")
+#     if not question:
+#         question = "医工交叉研究基金的申报要求是什么"
+#     print("Question entered: ", question)
+#     loader = HTMLJSONLoader("/root/SJTU-Echo/misc/rag_test/data/sample_contents.json")
+#     # for doc in loader.lazy_load():
+#     #     print(doc.page_content)
+#     #     print(doc.metadata)
+#     #     print("===")
+#     docs = loader.load()
+
+#     from langchain_text_splitters import RecursiveCharacterTextSplitter
+#     text_splitter = RecursiveCharacterTextSplitter(
+#         chunk_size=1000, chunk_overlap=200, add_start_index=True
+#     )
+#     all_splits = text_splitter.split_documents(docs)
+
+
+#     from langchain_huggingface import HuggingFaceEmbeddings
+#     # 如果需要从本地加载模型：
+#     embeddings_model = HuggingFaceEmbeddings(model_name="/root/SJTU-Echo/local_model", model_kwargs={"trust_remote_code": True})
+    
+#     from langchain_chroma import Chroma
+#     vectorstore = Chroma.from_documents(documents=all_splits, embedding=embeddings_model, persist_directory="data/chroma")
+#     retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+#     retrieved_docs = retriever.invoke(question)
+#     # print(retrieved_docs[0].page_content)
+
+
+
+#     chat_model = QwenModel(model="/root/SJTU-Echo/Qwen/Qwen2.5-1.5B")
+#     from langchain import hub
+#     # currently single-round conversation; easy to implement conversation with context in the future
+#     prompt = hub.pull("rlm/rag-prompt")
+
+#     input_messages = prompt.invoke(
+#         {"context": retrieved_docs[0].page_content, "question": question}
+#     ).to_messages()
+
+#     print(chat_model.invoke(input=input_messages).content)
+def get_answer_and_retrieved_text(question: str, document_path: str) -> dict:
+    # 加载文档
+    loader = HTMLJSONLoader(document_path)
     docs = loader.load()
 
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000, chunk_overlap=200, add_start_index=True
-    )
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, add_start_index=True)
     all_splits = text_splitter.split_documents(docs)
 
-
-    from langchain_huggingface import HuggingFaceEmbeddings
-    # 如果需要从本地加载模型：
+    # 加载Embeddings模型
     embeddings_model = HuggingFaceEmbeddings(model_name="/root/SJTU-Echo/local_model", model_kwargs={"trust_remote_code": True})
-    
-    from langchain_chroma import Chroma
+
+    # 创建Chroma向量数据库
     vectorstore = Chroma.from_documents(documents=all_splits, embedding=embeddings_model, persist_directory="data/chroma")
+    
+    # 创建检索器
     retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+
+    # 执行检索，获取相关的文档
     retrieved_docs = retriever.invoke(question)
-    # print(retrieved_docs[0].page_content)
 
-
-
+    # 加载Qwen模型
     chat_model = QwenModel(model="/root/SJTU-Echo/Qwen/Qwen2.5-1.5B")
-    from langchain import hub
-    # currently single-round conversation; easy to implement conversation with context in the future
+
+    # 使用RAG（Retrieval-Augmented Generation）策略生成回答
     prompt = hub.pull("rlm/rag-prompt")
 
+    # 构建输入消息
     input_messages = prompt.invoke(
         {"context": retrieved_docs[0].page_content, "question": question}
     ).to_messages()
 
-    print(chat_model.invoke(input=input_messages).content)
+    # 调用模型生成答案
+    answer = chat_model._generate(input_messages)
+    answer = answer.generations[0].text if answer.generations else "No answer generated"
+    # 返回召回的文本和生成的答案
+    return answer,[doc.page_content for doc in retrieved_docs]
+    
+
+
+# 调用函数
+if __name__ == "__main__":
+    question = input("Enter your question: ")
+    answer,result = get_answer_and_retrieved_text(question, "/root/SJTU-Echo/misc/rag_test/data/sample_contents.json")
+    print("Answer: ",answer,"召回", result)
