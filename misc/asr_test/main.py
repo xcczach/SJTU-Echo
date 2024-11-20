@@ -3,8 +3,6 @@ from ml_web_inference import (
     Request,
     Response,
 )
-import torch
-import io
 import argparse
 from scipy.signal import resample
 from funasr_onnx.utils.postprocess_utils import rich_transcription_postprocess
