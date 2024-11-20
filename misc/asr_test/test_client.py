@@ -1,6 +1,5 @@
 import requests
 import soundfile as sf
-import io
 
 url = "http://localhost:9234/asr"
 audio_data, sample_rate = sf.read("ref_audio.mp3")
