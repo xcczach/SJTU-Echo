@@ -19,3 +19,7 @@ Voice QA agent for SJTU campus guide
 - [ ] Text to speech
 - [ ] Speech to text
 - [ ] UI
+
+## Usage
+
+### Data scrapping

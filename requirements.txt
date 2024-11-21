@@ -1,0 +1,4 @@
+selenium==4.26.1
+bs4==0.0.2
+readability-lxml==0.8.1
+argparse==1.4.0
