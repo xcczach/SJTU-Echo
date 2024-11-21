@@ -16,13 +16,20 @@ from readability import Document
 from datetime import datetime, timezone
 import json
 import os
+import sys
+from selenium.webdriver.firefox.service import Service
 
 
 def get_driver():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-
-    driver = webdriver.Chrome(options=chrome_options)
+    options = Options()
+    options.add_argument("--headless")
+    if sys.platform == "win32":
+        driver = webdriver.Chrome(options=options)
+    elif sys.platform == "linux":
+        service = Service(executable_path="/usr/local/bin/geckodriver")
+        driver = webdriver.Firefox(service=service)
+    else:
+        raise Exception("Unsupported platform")
     return driver
 
 
@@ -78,6 +85,7 @@ async def _extract_links_recursively_helper(
     _result_dict: StrSetDict = dict(),
     _file_write_lock: asyncio.Lock = asyncio.Lock(),
 ):
+    print(f"Extracting links from {start_url} at depth {_depth}")
     if start_url in _visited or _depth > max_depth:
         return
     _visited.add(start_url)

@@ -23,3 +23,22 @@ Voice QA agent for SJTU campus guide
 ## Usage
 
 ### Data scrapping
+
+#### Installation
+
+Currently only support running on windows.
+
+Extract links from a certain website recursively:
+```bash
+python data_scrapper.py --extract-links
+```
+
+Extract sub-urls (urls starting with the same base url) from a base url:
+```bash
+python data_scrapper.py --extract-sub-urls
+```
+
+Extract content from a list of websites:
+```bash
+python data_scrapper.py --extract-content
+```
