@@ -6,8 +6,18 @@
         </div>
 
         <div class="sidebar-sessions">
-          <div class="sidebar-session-card">Session 2</div>
-          <div class="sidebar-session-card">Session 1</div>
+          <div v-for="(session, index) in sessions"
+          :key="session.id" class="sidebar-session-card">
+            {{ session.name }}
+            <button class="siderbar-session-card-options-button" @click="toggleMenu(index)">...</button>
+            <div
+              v-if="activeMenuIndex === index"
+              class="sidebar-dropdown-menu"
+            >
+              <button @click="renameSession(index)">Rename</button>
+              <button @click="deleteSession(index)">Delete</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -22,10 +32,44 @@
   </template>
   
   <script setup>
-  import { ref } from "vue";
+  import { ref, onMounted } from "vue";
 
   // store all sessions
   const sessions = ref([]);
+  const activeMenuIndex = ref(null);
+
+  function toggleMenu(index) {
+    if (activeMenuIndex.value === index) {
+      activeMenuIndex.value = null;
+    } else {
+      activeMenuIndex.value = index;
+    }
+  }
+
+  function renameSession(index) {
+    const sessionName = sessions.value[index].name;
+    const newSessionName = prompt("Enter a new session name:", sessionName);
+    if (newSessionName && newSessionName !== sessionName) {
+      if (isSessionExists(newSessionName)) {
+        alert(`Session "${newSessionName}" already exists!`);
+      } else {
+        sessions.value[index].name = newSessionName;
+        saveSessionData();
+        alert(`Session "${sessionName}" renamed to "${newSessionName}"!`);
+      }
+    }
+    activeMenuIndex.value = null;
+  }
+
+  function deleteSession(index) {
+    const sessionName = sessions.value[index].name;
+    if (confirm(`Are you sure you want to delete the session "${sessionName}"?`)) {
+      activeMenuIndex.value = null;
+      sessions.value.splice(index, 1);
+      saveSessionData();
+      alert(`Session "${sessionName}" deleted!`);
+    }
+  }
 
   function generateSessionID() {
     return Array(20)
@@ -34,37 +78,46 @@
         .join('');
   }
 
-  function newSession(sessionName) {
-    // create a HTML element for a new session with the given name
-    const sidebarSessions = document.querySelector(".sidebar-sessions");
-    const sessionElement = document.createElement("div");
-    sessionElement.classList.add("sidebar-session-card");
-    sessionElement.textContent = sessionName;
-    const dataVAttribute = document.querySelector(".sidebar-session-card")?.getAttributeNames().find(attr => attr.startsWith("data-v-"));
-    if (dataVAttribute) {
-        sessionElement.setAttribute(dataVAttribute, "");
-    }
-
-    sidebarSessions.prepend(sessionElement);
+  function isSessionExists(sessionName) {
+    return sessions.value.some((session) => session.name === sessionName);
   }
 
   function promptNewSession() {
     // Give a prompt to the user to enter a new session name
     const sessionName = prompt("Enter a session name:");
     if (sessionName) {
-      // give a unique id to the session, for example, using a random
-      // number or a UUID
-      const sessionID = generateSessionID();
-      sessions.value.push({
-        name: sessionName,
-        id: sessionID,
-        messages: [],
-      });
-      alert(`Session "${sessionName}" created!`);
-      newSession(sessionName);
+      if (isSessionExists(sessionName)) {
+        alert(`Session "${sessionName}" already exists!`);
+      } else {
+        const sessionID = generateSessionID();
+        const newSessionObj = {
+          name: sessionName,
+          id: sessionID,
+          messages: [],
+        };
+        sessions.value.push(newSessionObj);
+        saveSessionData();
+        alert(`Session "${sessionName}" created!`);
+      }
     }
   }
 
+  // save the session data to local storage
+  function saveSessionData() {
+    localStorage.setItem("sessions", JSON.stringify(sessions.value));
+  }
+
+  // load the session data from local storage
+  function loadSessionData() {
+    const sessionData = localStorage.getItem("sessions");
+    if (sessionData) {
+      sessions.value = JSON.parse(sessionData);
+    }
+  }
+
+  onMounted(() => {
+    loadSessionData(); // Ensure the DOM is ready
+  });
   </script>
   
   <style scoped>
@@ -92,8 +145,9 @@
   .window {
     width: 75vw;
     height: 100vh;
-    margin-left: 4vw;
+    margin-left: 23vw;
     padding-top: 20px;
+    position: fixed;
     background: transparent;
     color: white;
     top: 0;
@@ -163,6 +217,7 @@
   .sidebar-sessions {
     display: flex;
     flex-direction: column;
+    height: 80vh;
     gap: 10px;
     padding: 20px;
     overflow-y: auto;
@@ -172,6 +227,10 @@
     padding: 10px 10px;
     border-radius: 5px;
     border-bottom: 1px solid var(--primary-color);
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    align-items: center;
     cursor: pointer;
     color: white;
     transition: background-color 0.3s;
@@ -179,6 +238,52 @@
 
   .sidebar-session-card:hover {
     background-color: var(--primary-color);
+  }
+
+  .siderbar-session-card-options-button {
+    background: none;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .siderbar-session-card-options-button:hover {
+    background: var(--accent-color);
+  }
+
+  .sidebar-dropdown-menu {
+    position: absolute;
+    height: auto;
+    top: 100%;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--neutral-dark);
+    border-radius: 5px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 10;
+  }
+
+  .sidebar-dropdown-menu button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    text-align: left;
+    padding: 10px 15px;
+    width: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background-color 0.3s;
+    font-weight: 600;
+  }
+
+  .sidebar-dropdown-menu button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
   
   /* 消息窗口样式 */
