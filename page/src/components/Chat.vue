@@ -6,10 +6,18 @@
         </div>
 
         <div class="sidebar-sessions">
-          <div v-for="(session, index) in sessions"
-          :key="session.id" class="sidebar-session-card">
+          <div
+              v-for="(session, index) in sessions"
+              :key="session.id"
+              class="sidebar-session-card"
+            >
             {{ session.name }}
-            <button class="siderbar-session-card-options-button" @click="toggleMenu(index)">...</button>
+            <button class="siderbar-session-card-enter-button" @click="navigateToSession(session.id)">
+              <el-icon><EnterOutlined /></el-icon>
+            </button>
+            <button class="siderbar-session-card-options-button" @click="toggleMenu(index)">
+              <el-icon><MoreFilled /></el-icon>
+            </button>
             <div
               v-if="activeMenuIndex === index"
               class="sidebar-dropdown-menu"
@@ -23,9 +31,18 @@
 
       <div class="window">
         <h2 class="window-title">Chat with SJTU Echo</h2>
-        <div class="window-start">
+        <div class="window-start" v-if = "sessionID === null">
           <p class="window-start-line1">Welcome to SJTU Echo! Click on a session to start chatting.</p>
           <p class="window-start-line2">You can create a new session by clicking the "New Session" button.</p>
+        </div>
+        <div class="window-enter" v-if = "sessionID !== null">
+          <button class="window-enter-voice">
+            <el-icon><Microphone /></el-icon>
+          </button>
+          <textarea class="window-enter-textbox" placeholder="Enter your message here..."></textarea>
+          <button class="window-enter-send">
+            <el-icon><Promotion /></el-icon>
+          </button>
         </div>
       </div>
     </div>
@@ -33,10 +50,16 @@
   
   <script setup>
   import { ref, onMounted } from "vue";
+  import { useRoute } from 'vue-router';
 
-  // store all sessions
-  const sessions = ref([]);
+  const sessions = ref([]);   // store all sessions
   const activeMenuIndex = ref(null);
+  const sessionID = useRoute().params.sessionID ?? null;
+
+  function navigateToSession(sessionID) {
+    // Redirect to the chat window with the session ID
+    window.location.href = `/chat/${sessionID}`;
+  }
 
   function toggleMenu(index) {
     if (activeMenuIndex.value === index) {
@@ -126,7 +149,7 @@
     flex-direction: row;
     justify-content: flex-start;
     height: 100vh;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-family);
   }
   
   .sidebar {
@@ -207,7 +230,7 @@
     font-size: 1rem;
     font-weight: 700;
     margin: 10px 20px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-family);
   }
 
   .sidebar-create-button:hover {
@@ -231,7 +254,6 @@
     justify-content: space-between;
     position: relative;
     align-items: center;
-    cursor: pointer;
     color: white;
     transition: background-color 0.3s;
   }
@@ -240,12 +262,26 @@
     background-color: var(--primary-color);
   }
 
+  .siderbar-session-card-enter-button {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 85%;
+    background-color: transparent;
+    z-index: 1;
+    border: none;
+    cursor: pointer;
+  }
+
   .siderbar-session-card-options-button {
     background: none;
     border: none;
+    width: 30px;
+    height: 30px;
     border-radius: 5px;
     color: white;
-    font-size: 1.2rem;
+    font-size: 0.5rem;
     cursor: pointer;
     transition: background-color 0.3s;
   }
@@ -274,10 +310,8 @@
     border: none;
     color: white;
     cursor: pointer;
-    text-align: left;
     padding: 10px 15px;
     width: 100%;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     transition: background-color 0.3s;
     font-weight: 600;
   }
@@ -286,15 +320,72 @@
     background-color: rgba(255, 255, 255, 0.1);
   }
   
-  /* 消息窗口样式 */
-  .chat-window {
-    flex: 1;
-    padding: 20px;
-    background-color: #f5f5f5;
-    overflow-y: auto;
+  .window-enter {
+    position: absolute;
+    justify-items: center;
+    align-items: center;
+    bottom: 5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%; 
+    height: 13vh;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 10px;
+    padding: 10px;
+    background: transparent;
+    color: white;
+  }
+
+  .window-enter-textbox {
+    padding: 10px;
+    background-color: #303030;
+    border: none;
+    border-radius: 20px;
+    width: 70%;
+    height: 100%;
+    resize: none;
+    padding: 15px;
+    color: white;
+    font-size: 1.2rem;
+    font-family: var(--font-family);
+  }
+
+  .window-enter-voice {
+    padding: 10px 20px;
+    width: 60px;
+    height: 60px;
+    background-color: var(--neutral-dark);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .window-enter-voice:hover {
+    background-color: var(--accent-color);
+  }
+
+  .window-enter-send {
+    padding: 10px 20px;
+    width: 60px;
+    height: 60px;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .window-enter-send:hover {
+    background-color: var(--accent-color);
+  }
+
+  .window-enter-textbox:focus {
+    outline: none;
   }
   
   .message {

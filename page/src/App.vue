@@ -4,10 +4,12 @@ import TheWelcome from './components/TheWelcome.vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import Home from './components/Home.vue'
 import Chat from './components/Chat.vue'
+import '@fortawesome/fontawesome-free/css/all.css'
 
 const routes = [
   { path: '/', component: Home },
   { path: '/chat', component: Chat },
+  { path: '/chat/:sessionID', component: Chat },
 ]
 
 const router = createRouter({

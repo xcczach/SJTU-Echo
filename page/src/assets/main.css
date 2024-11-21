@@ -37,6 +37,9 @@ a {
 
   /* 基本文字颜色 */
   --text-primary: #FFFFFF; /* 主文字 */
+
+  /* 基本字体 */
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 @media (hover: hover) {
