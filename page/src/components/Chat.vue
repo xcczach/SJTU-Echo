@@ -2,7 +2,9 @@
     <div class="chat-app">
       <div class="sidebar">
         <div class="sidebar-top">
-          <button class="sidebar-create-button" @click="promptNewSession">New Session</button>
+          <button class="sidebar-create-button" @click="promptNewSession">
+            <el-icon><ChatDotSquare /></el-icon>
+          </button>
         </div>
 
         <div class="sidebar-sessions">
@@ -218,7 +220,7 @@
   }
 
   .sidebar-create-button {
-    width: 140px;
+    width: 45px;
     height: 45px;
     transition: background-color 0.3s;
     text-align: center;
@@ -227,10 +229,8 @@
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 700;
     margin: 10px 20px;
-    font-family: var(--font-family);
+    padding: 10px;
   }
 
   .sidebar-create-button:hover {
