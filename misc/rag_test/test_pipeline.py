@@ -125,7 +125,7 @@ if __name__ == "__main__":
     vectorstore = Chroma.from_documents(documents=all_splits, embedding=embeddings_model, persist_directory="data/chroma")
     retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
     retrieved_docs = retriever.invoke(question)
-    # print(retrieved_docs[0].page_content)
+    print(retrieved_docs[0].metadata["url"])
 
     # If applicable use Qwen/Qwen2.5-7B-Instruct
 
