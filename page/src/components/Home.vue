@@ -1,19 +1,18 @@
 <script setup>
 import HelloWorld from './Hello.vue'
 import TheWelcome from './TheWelcome.vue'
+import WelcomeItem from './WelcomeItem.vue'
 </script>
 
 <template>
     <div class="general">
-        <header>
-            <!-- <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" /> -->
-            <div class="wrapper">
-                <HelloWorld msg="Welcome to SJTU Echo" />
-            </div>
-        </header>
-        <main>
-            <!-- <TheWelcome /> -->
-        </main>
+      <header>
+        <div class="wrapper">
+            <HelloWorld msg="Welcome to SJTU Echo" />
+        </div>
+      </header>
+      <main>
+      </main>
     </div>
 </template>
 
@@ -21,6 +20,8 @@ import TheWelcome from './TheWelcome.vue'
 .general {
     display: flex;
     flex-direction: row;
+    justify-content: center;
+    align-items: center;
 }
 
 header {
