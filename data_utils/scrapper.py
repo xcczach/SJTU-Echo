@@ -15,6 +15,7 @@ import aiohttp
 from readability import Document
 from datetime import datetime, timezone
 import json
+import os
 
 
 def get_driver():
@@ -397,7 +398,7 @@ async def _extract_content_static_async_helper(
     return HTMLContent(url, doc_content, _get_time_now())
 
 
-async def extract_content_static_async(
+async def _extract_content_static_async(
     url: str,
     session: aiohttp.ClientSession | None = None,
     process_function: Callable[[str], dict] = readability_process_content,
@@ -410,7 +411,7 @@ async def extract_content_static_async(
     return await _extract_content_static_async_helper(url, session)
 
 
-async def extract_content_dynamic_async(
+async def _extract_content_dynamic_async(
     url: str,
     process_function: Callable[[str], dict] = readability_process_content,
     max_wait_time: float = 10.0,
@@ -466,6 +467,8 @@ def _get_cleaned_links_dict(links_dict: StrSetDict, start_url: str):
 
 def _get_sub_urls_file_path(result_dir:str, url: str, cleaned: bool = False) -> str:
     sub_urls_dir = f"{result_dir}/sub_urls"
+    if not os.path.exists(sub_urls_dir):
+        os.makedirs(sub_urls_dir)
     return f"{sub_urls_dir}/{url.replace('://', '_').strip('/').replace('/', '_')}{'_raw' if not cleaned else ''}.json"
 
 class TreeNode:
@@ -531,7 +534,7 @@ def extract_sub_urls(url: str, result_path: str):
     """
     Extract all sub-urls in the website starting from url recursively; save a set of sub-urls in absolute path to result_path; sub-urls starts with the base url.
     Sub-urls are from <a href="...">, <a href="javascript:;"> and clickable page number elements.
-    result_path: the path to save the extracted sub-urls, need to be .json.
+    result_path: the directory to save the extracted sub-urls.
     """
     def preclean_sub_urls(url: str):
         visited_links, _ = _load_links_and_depth(
@@ -579,7 +582,7 @@ def extract_content(urls: list[str], result_path: str):
     """
     async def extract_content_async(urls: list[str]):
         async with aiohttp.ClientSession() as session:
-            tasks = [extract_content_static_async(url, session) for url in urls]
+            tasks = [_extract_content_static_async(url, session) for url in urls]
             static_results = await asyncio.gather(*tasks)
 
         DYNAMIC_RESCRAP_THRESHOLD = 400
@@ -592,7 +595,7 @@ def extract_content(urls: list[str], result_path: str):
             item for item in static_results if item.url not in dynamic_urls
         ]
         tasks = [
-            extract_content_dynamic_async(url, get_raw_content) for url in dynamic_urls
+            _extract_content_dynamic_async(url, get_raw_content) for url in dynamic_urls
         ]
         dynamic_results = await asyncio.gather(*tasks)
         return static_results + dynamic_results
