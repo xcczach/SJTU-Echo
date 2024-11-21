@@ -1,0 +1,59 @@
+@import './base.css';
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-weight: normal;
+}
+
+a {
+  text-decoration: none;
+  color: var(--neutral-light);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+.purple {
+  text-decoration: none;
+  color: var(--accent-color);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+:root {
+  /* 背景色 */
+  --background-primary: #1E1B2E; /* 主背景色 */
+  --background-secondary: #29243C; /* 区域背景色 */
+
+  /* 紫色系主色 */
+  --primary-color: #7E57C2; /* 主色 */
+  --secondary-color: #5C4D9D; /* 辅色 */
+  --accent-color: #B388FF; /* 强调色 */
+
+  /* 中性色 */
+  --neutral-light: #D1C4E9; /* 次要文字色 */
+  --neutral-dark: #4A4A66; /* 分隔线/边框 */
+
+  /* 基本文字颜色 */
+  --text-primary: #FFFFFF; /* 主文字 */
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: var(--secondary-color);
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 2rem;
+  }
+}
