@@ -85,7 +85,6 @@ async def _extract_links_recursively_helper(
     _result_dict: StrSetDict = dict(),
     _file_write_lock: asyncio.Lock = asyncio.Lock(),
 ):
-    print(f"Extracting links from {start_url} at depth {_depth}")
     if start_url in _visited or _depth > max_depth:
         return
     _visited.add(start_url)
@@ -243,11 +242,15 @@ def get_base_url(url: str) -> str:
     parsed_url = urlparse(url)
     return f"{parsed_url.scheme}://{parsed_url.netloc}"
 
+
 file_suffixes = None
+
+
 def _is_file_url(url: str) -> bool:
     global file_suffixes
     if file_suffixes is None:
-        with open("config.json", "r") as f:
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(f"{script_dir}/config.json", "r") as f:
             config = json.load(f)
             file_suffixes = config["file_suffixes"]
     suffix = url.split(".")[-1]
@@ -428,6 +431,7 @@ async def _extract_content_dynamic_async(
     doc_content = process_function(content)
     return HTMLContent(url, doc_content, _get_time_now())
 
+
 def _load_links_and_depth(path: str) -> tuple[StrSetDict, int]:
     try:
         with open(path, "r") as f:
@@ -440,13 +444,16 @@ def _load_links_and_depth(path: str) -> tuple[StrSetDict, int]:
 def _wrap_links_and_depth(links_dict: StrSetDict, depth: int) -> dict:
     return {"depth": depth, "links": links_dict}
 
+
 def _count_links(links_dict: StrSetDict) -> int:
     return sum(len(links) for links in links_dict.values())
+
 
 def _save_links(links_dict: StrSetDict, depth: int, path: str):
     with open(path, "w") as f:
         json.dump(_wrap_links_and_depth(links_dict, depth), f)
     print(f"{_count_links(links_dict)} links saved to {path}")
+
 
 # Remove circular references and duplicates; normalize urls
 def _get_cleaned_links_dict(links_dict: StrSetDict, start_url: str):
@@ -473,11 +480,13 @@ def _get_cleaned_links_dict(links_dict: StrSetDict, start_url: str):
 
     return cleaned_dict
 
-def _get_sub_urls_file_path(result_dir:str, url: str, cleaned: bool = False) -> str:
+
+def _get_sub_urls_file_path(result_dir: str, url: str, cleaned: bool = False) -> str:
     sub_urls_dir = f"{result_dir}/sub_urls"
     if not os.path.exists(sub_urls_dir):
         os.makedirs(sub_urls_dir)
     return f"{sub_urls_dir}/{url.replace('://', '_').strip('/').replace('/', '_')}{'_raw' if not cleaned else ''}.json"
+
 
 class TreeNode:
     def __init__(self, value):
@@ -499,6 +508,7 @@ class TreeNode:
             return 0
         return max(child.depth for child in self.children) + 1
 
+
 def _build_links_tree(urls_dict: StrSetDict, root_url: str):
     root_url = _normalize_url(root_url)
     root = TreeNode(root_url)
@@ -513,11 +523,13 @@ def _build_links_tree(urls_dict: StrSetDict, root_url: str):
     add_children(root, root_url)
     return root
 
+
 def _get_depth(links_dict: StrSetDict, start_url: str) -> int:
     links_tree = _build_links_tree(links_dict, start_url)
     return links_tree.depth
 
-def extract_links(root_url: str, result_path: str, max_depth: int=2):
+
+def extract_links(root_url: str, result_path: str, max_depth: int = 2):
     """
     Extract all the links starting from root_url recursively; return a set of links in absolute path; links do not need to start with the base url.
     result_path: the path to save the extracted links, need to be .json.
@@ -531,12 +543,15 @@ def extract_links(root_url: str, result_path: str, max_depth: int=2):
         max_concurrency=10,
         wait_time=2,
         visited_links_dict=visited_links,
-        recursion_callback=_save_links,
+        recursion_callback=lambda links_dict, depth: _save_links(
+            links_dict, depth, path=raw_result_path
+        ),
     )
     visited_links, current_depth = _load_links_and_depth(path=raw_result_path)
     _save_links(visited_links, current_depth, path=raw_result_path)
     visited_links = _get_cleaned_links_dict(visited_links, root_url)
     _save_links(visited_links, current_depth, path=result_path)
+
 
 def extract_sub_urls(url: str, result_path: str):
     """
@@ -544,6 +559,7 @@ def extract_sub_urls(url: str, result_path: str):
     Sub-urls are from <a href="...">, <a href="javascript:;"> and clickable page number elements.
     result_path: the directory to save the extracted sub-urls.
     """
+
     def preclean_sub_urls(url: str):
         visited_links, _ = _load_links_and_depth(
             path=_get_sub_urls_file_path(result_path, url, cleaned=False)
@@ -578,16 +594,19 @@ def extract_sub_urls(url: str, result_path: str):
     file_path = _get_sub_urls_file_path(url, cleaned=True)
     _save_links(visited_links, current_depth, path=file_path)
 
+
 def _save_contents(contents: list[HTMLContent], path: str):
     with open(path, "w", encoding="utf-8") as f:
         json.dump([content.to_dict() for content in contents], f, ensure_ascii=False)
     print(f"{len(contents)} contents saved to {path}")
+
 
 def extract_content(urls: list[str], result_path: str):
     """
     Extract the content from each url in urls; save the results to result_path.
     result_path: the path to save the extracted contents, need to be .json.
     """
+
     async def extract_content_async(urls: list[str]):
         async with aiohttp.ClientSession() as session:
             tasks = [_extract_content_static_async(url, session) for url in urls]
