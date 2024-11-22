@@ -30,7 +30,7 @@ def get_urls_from_file(file_path: str):
         all_content = f.read()
     url_pattern = r'http[s]?://[^\s<>"]+'
     urls = re.findall(url_pattern, all_content)
-    return urls
+    return list(set(urls))
 
 
 if __name__ == "__main__":

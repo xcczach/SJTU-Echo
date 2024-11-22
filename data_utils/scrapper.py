@@ -20,9 +20,16 @@ import sys
 from selenium.webdriver.firefox.service import Service
 
 
-def get_driver():
+def _get_driver():
     options = Options()
     options.add_argument("--headless")
+    prefs = {
+        "download.default_directory": "",
+        "download.prompt_for_download": False,
+        "download_restrictions": 3,
+        "profile.default_content_setting_values.automatic_downloads": 2,  # 阻止自动下载
+    }
+    options.add_experimental_option("prefs", prefs)
     if sys.platform == "win32":
         driver = webdriver.Chrome(options=options)
     elif sys.platform == "linux":
@@ -33,7 +40,7 @@ def get_driver():
     return driver
 
 
-def close_driver(driver: WebDriver):
+def _close_driver(driver: WebDriver):
     driver.quit()
 
 
@@ -62,9 +69,9 @@ async def _extract_links_async(
     wait_time: float = 2.0,
 ):
     async with sema:
-        driver = get_driver()
+        driver = _get_driver()
         links = await asyncio.to_thread(_extract_links, driver, start_url, wait_time)
-        close_driver(driver)
+        _close_driver(driver)
         return links
 
 
@@ -210,7 +217,7 @@ async def _extract_target_url_from_dynamic_element_async(
     null_result="",
 ) -> str:
     async with sema:
-        driver = get_driver()
+        driver = _get_driver()
         driver.get(base_url)
         await asyncio.sleep(base_wait_time)
         tag_name = element["tag"]
@@ -230,15 +237,15 @@ async def _extract_target_url_from_dynamic_element_async(
             await asyncio.sleep(target_wait_time)
             result = driver.current_url
         except Exception as e:
-            close_driver(driver)
+            _close_driver(driver)
             return null_result
         if _urls_are_equal(result, base_url):
             result = null_result
-        close_driver(driver)
+        _close_driver(driver)
         return result
 
 
-def get_base_url(url: str) -> str:
+def _get_base_url(url: str) -> str:
     parsed_url = urlparse(url)
     return f"{parsed_url.scheme}://{parsed_url.netloc}"
 
@@ -267,11 +274,11 @@ async def _extract_sub_urls_async(
     base_wait_time: float = 2.0,
     target_wait_time: float = 2.0,
 ):
-    base_url = get_base_url(url)
+    base_url = _get_base_url(url)
     if _is_file_url(url):
         return []
     async with sema:
-        driver = get_driver()
+        driver = _get_driver()
         driver.get(url)
         await asyncio.sleep(base_wait_time)
         source = driver.page_source
@@ -279,7 +286,7 @@ async def _extract_sub_urls_async(
             _extract_switch_page_elements_from_source, source
         )
 
-        async def extract_links_from_dynamic_elements(elements):
+        async def _extract_links_from_dynamic_elements(elements):
             tasks = []
             null_result = ""
             for element in elements:
@@ -298,12 +305,12 @@ async def _extract_sub_urls_async(
             result = [link for link in result if link != null_result]
             return result
 
-        dynamic_links = await extract_links_from_dynamic_elements(dynamic_elements)
+        dynamic_links = await _extract_links_from_dynamic_elements(dynamic_elements)
         static_links = await asyncio.to_thread(_extract_links_from_source, source)
         static_links = [href_to_absolute(url, href) for href in static_links]
         js_elements = _extract_js_elements_from_links(static_links)
-        js_links = await extract_links_from_dynamic_elements(js_elements)
-        close_driver(driver)
+        js_links = await _extract_links_from_dynamic_elements(js_elements)
+        _close_driver(driver)
     result = dynamic_links + js_links + static_links
     result = [link for link in result if link.startswith(base_url)]
     return result
@@ -367,18 +374,31 @@ def _get_time_now():
 
 
 async def _fetch_content_static_async(url: str, session: aiohttp.ClientSession):
+    if _is_file_url(url):
+        print(f"_fetch_content_static_async: Skipping file URL: {url}")
+        return ""
     async with session.get(url) as response:
-        return await response.text()
+        content_type = response.headers.get("Content-Type", "")
+        if "application/json" in content_type or "text/html" in content_type:
+            return await response.text()
+        else:
+            print(
+                f"_fetch_content_static_async: Unsupported content type: {content_type}"
+            )
+            return ""
 
 
 def _fetch_content_dynamic(url: str, max_wait_time: float = 10.0):
-    driver = get_driver()
+    if _is_file_url(url):
+        print(f"_fetch_content_dynamic: Skipping file URL: {url}")
+        return ""
+    driver = _get_driver()
     driver.get(url)
     WebDriverWait(driver, max_wait_time).until(
         lambda d: d.execute_script("return document.readyState") == "complete"
     )
     content = driver.page_source
-    close_driver(driver)
+    _close_driver(driver)
     return content
 
 
@@ -386,12 +406,16 @@ async def _fetch_content_dynamic_async(url: str, max_wait_time: float = 10.0):
     return await asyncio.to_thread(_fetch_content_dynamic, url, max_wait_time)
 
 
-def readability_process_content(content: str):
-    doc = Document(content)
-    doc_content = {
-        "title": doc.title(),
-        "body": doc.summary(),
-    }
+def _readability_process_content(content: str):
+    try:
+        doc = Document(content)
+        doc_content = {
+            "title": doc.title(),
+            "body": doc.summary(),
+        }
+    except Exception as e:
+        print(f"_readability_process_content: {e}")
+        doc_content = {"title": "", "body": ""}
     return doc_content
 
 
@@ -402,7 +426,7 @@ def get_raw_content(content: str):
 async def _extract_content_static_async_helper(
     url: str,
     session: aiohttp.ClientSession,
-    process_function: Callable[[str], dict] = readability_process_content,
+    process_function: Callable[[str], dict] = _readability_process_content,
 ):
     content = await _fetch_content_static_async(url, session)
     doc_content = process_function(content)
@@ -412,7 +436,7 @@ async def _extract_content_static_async_helper(
 async def _extract_content_static_async(
     url: str,
     session: aiohttp.ClientSession | None = None,
-    process_function: Callable[[str], dict] = readability_process_content,
+    process_function: Callable[[str], dict] = _readability_process_content,
 ):
     if session is None:
         async with aiohttp.ClientSession() as session:
@@ -424,7 +448,7 @@ async def _extract_content_static_async(
 
 async def _extract_content_dynamic_async(
     url: str,
-    process_function: Callable[[str], dict] = readability_process_content,
+    process_function: Callable[[str], dict] = _readability_process_content,
     max_wait_time: float = 10.0,
 ):
     content = await _fetch_content_dynamic_async(url, max_wait_time)
