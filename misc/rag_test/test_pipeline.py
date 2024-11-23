@@ -125,17 +125,19 @@ if __name__ == "__main__":
     vectorstore = Chroma.from_documents(documents=all_splits, embedding=embeddings_model, persist_directory="data/chroma")
     retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
     retrieved_docs = retriever.invoke(question)
-    print(retrieved_docs[0].metadata["url"])
 
     # If applicable use Qwen/Qwen2.5-7B-Instruct
-
     chat_model = QwenModel(model="Qwen/Qwen2.5-1.5B-Instruct")
     from langchain import hub
     # currently single-round conversation; easy to implement conversation with context in the future
     prompt = hub.pull("rlm/rag-prompt")
 
     input_messages = prompt.invoke(
-        {"context": retrieved_docs[0].page_content, "question": question}
+        {
+            "context": retrieved_docs[0].page_content, 
+            "question": question
+        }
     ).to_messages()
 
     print(chat_model.invoke(input=input_messages).content)
+    print("相关链接：", retrieved_docs[0].metadata["url"])
