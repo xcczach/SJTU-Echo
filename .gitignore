@@ -161,3 +161,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 misc/rag_test/data/chroma
+misc/rag_test/data/hypothetical_chroma
