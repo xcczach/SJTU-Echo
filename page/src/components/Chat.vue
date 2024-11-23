@@ -3,7 +3,7 @@
       <div class="sidebar">
         <div class="sidebar-top">
           <button class="sidebar-create-button" @click="promptNewSession">
-            <el-icon><ChatDotSquare /></el-icon>
+            New Session
           </button>
         </div>
 
@@ -32,17 +32,41 @@
       </div>
 
       <div class="window">
-        <h2 class="window-title">Chat with SJTU Echo</h2>
+        <div class="window-nav">
+          Chat with SJTU Echo
+          <button class="window-nav-home" @click="navigateHome(null)">
+            <el-icon><HomeFilled /></el-icon>
+          </button>
+        </div>
         <div class="window-start" v-if = "sessionID === null">
           <p class="window-start-line1">Welcome to SJTU Echo! Click on a session to start chatting.</p>
           <p class="window-start-line2">You can create a new session by clicking the "New Session" button.</p>
+        </div>
+        <div class="window-chat" v-if = "sessionID !== null">
+          <div
+            v-for="(message, index) in MessagesforSession()"
+            :key="index"
+            class="window-chat-card"
+            :class="message.from"
+          >
+            {{ message.content }}
+          </div>
         </div>
         <div class="window-enter" v-if = "sessionID !== null">
           <button class="window-enter-voice">
             <el-icon><Microphone /></el-icon>
           </button>
-          <textarea class="window-enter-textbox" placeholder="Enter your message here..."></textarea>
-          <button class="window-enter-send">
+          <textarea 
+            class="window-enter-textbox" 
+            v-model="userPrompt"
+            placeholder="Enter your prompt here..."
+          >
+          </textarea>
+          <button 
+            class="window-enter-send" 
+            @click="sendPrompt()"
+            :disabled="!userPrompt"
+          >
             <el-icon><Promotion /></el-icon>
           </button>
         </div>
@@ -53,11 +77,20 @@
   <script setup>
   import { ref, onMounted } from "vue";
   import { useRoute } from 'vue-router';
+  import axios from "axios";
 
   const sessions = ref([]);   // store all sessions
+  const messages = ref([]);   // store all messages
   const activeMenuIndex = ref(null);
   const sessionID = useRoute().params.sessionID ?? null;
+  const userPrompt = ref("");
 
+  const apiUrl = "http://127.0.0.1:5000/send-message";
+
+  function navigateHome() {
+    window.location.href = "/";
+  }
+  
   function navigateToSession(sessionID) {
     // Redirect to the chat window with the session ID
     window.location.href = `/chat/${sessionID}`;
@@ -127,6 +160,47 @@
     }
   }
 
+  function scrollToBottom() {
+    const chatWindow = document.querySelector(".window-chat");
+    setTimeout(() => {
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }, 0);
+  }
+
+  async function sendPrompt() {
+    const message = document.querySelector(".window-enter-textbox").value;
+    if (message) {
+      messages.value.push({ from: "user", content: message, sessionID: sessionID });
+      document.querySelector(".window-enter-textbox").value = "";
+      userPrompt.value = "";
+      saveMessageData();
+      scrollToBottom();
+
+      try {
+        const response = await axios.post(apiUrl, {
+          sessionID: sessionID,
+          content: message.value,
+        });
+        if (response.status === 200) {
+          const newMessage = { from: "bot", content: response.data.message, sessionID: sessionID};
+          messages.value.push(newMessage);
+          saveMessageData();
+          scrollToBottom();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }
+
+  function MessagesforSession() {
+    return messages.value.filter((message) => message.sessionID === sessionID);
+  }
+
+  function saveMessageData() {
+    localStorage.setItem("messages", JSON.stringify(messages.value));
+  }
+
   // save the session data to local storage
   function saveSessionData() {
     localStorage.setItem("sessions", JSON.stringify(sessions.value));
@@ -137,6 +211,10 @@
     const sessionData = localStorage.getItem("sessions");
     if (sessionData) {
       sessions.value = JSON.parse(sessionData);
+    }
+    const messageData = localStorage.getItem("messages");
+    if (messageData) {
+      messages.value = JSON.parse(messageData);
     }
   }
 
@@ -179,13 +257,33 @@
     left: 0;
     display: flex;
     flex-direction: column;
+    align-items: center;
   }
   
-  .window-title {
+  .window-nav {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
     margin: 0;
     font-size: 1.5rem;
     color: var(--accent-color);
     font-weight: 700;
+  }
+
+  .window-nav-home {
+    position: absolute;
+    right: 0;
+    background: none;
+    border: none;
+    color: #AAAAAA;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+
+  .window-nav-home:hover {
+    color: var(--neutral-light);
   }
 
   .window-start {
@@ -220,7 +318,7 @@
   }
 
   .sidebar-create-button {
-    width: 45px;
+    width: 150px;
     height: 45px;
     transition: background-color 0.3s;
     text-align: center;
@@ -231,6 +329,8 @@
     cursor: pointer;
     margin: 10px 20px;
     padding: 10px;
+    font-family: var(--font-family);
+    font-weight: 700;
   }
 
   .sidebar-create-button:hover {
@@ -314,6 +414,7 @@
     width: 100%;
     transition: background-color 0.3s;
     font-weight: 600;
+    font-family: var(--font-family);
   }
 
   .sidebar-dropdown-menu button:hover {
@@ -322,7 +423,7 @@
   
   .window-enter {
     position: absolute;
-    justify-items: center;
+    justify-content: center;
     align-items: center;
     bottom: 5vh;
     left: 50%;
@@ -342,7 +443,7 @@
     background-color: #303030;
     border: none;
     border-radius: 20px;
-    width: 70%;
+    width: 60%;
     height: 100%;
     resize: none;
     padding: 15px;
@@ -355,7 +456,7 @@
     padding: 10px 20px;
     width: 60px;
     height: 60px;
-    background-color: var(--neutral-dark);
+    background-color: var(--secondary-color);
     color: white;
     border: none;
     border-radius: 15px;
@@ -380,6 +481,16 @@
     transition: background-color 0.3s;
   }
 
+  .window-enter-send:disabled {
+    background-color: var(--neutral-dark);
+    cursor: not-allowed;
+  }
+
+  .window-enter-send:disabled:hover {
+    background-color: var(--neutral-dark);
+    cursor: not-allowed;
+  }
+
   .window-enter-send:hover {
     background-color: var(--accent-color);
   }
@@ -388,54 +499,52 @@
     outline: none;
   }
   
-  .message {
-    max-width: 70%;
+  .window-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    top: 10px;
+    padding: 20px;
+    width: 60vw;
+    height: 75vh;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  .window-chat::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .window-chat::-webkit-scrollbar-track {
+    background: #202020;
+    border-radius: 10px;
+  }
+
+  .window-chat::-webkit-scrollbar-thumb {
+    background-color: #303030;
+    border-radius: 10px;
+  }
+
+  .window-chat-card {
     padding: 10px;
     border-radius: 10px;
+    display: inline-block;
+    max-width: 70%;
     word-wrap: break-word;
   }
-  
-  .message.user {
-    align-self: flex-end;
-    background-color: #daf1da;
-  }
-  
-  .message.bot {
-    align-self: flex-start;
-    background-color: #e0e0e0;
-  }
-  
-  /* 底部输入栏样式 */
-  .input-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 20px;
-    background-color: white;
-    border-top: 1px solid #ddd;
-  }
-  
-  .input-text {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    resize: none;
-    font-size: 1rem;
-  }
-  
-  .send-button {
-    padding: 10px 20px;
-    background-color: #4caf50;
+
+  .window-chat-card.user {
+    background-color: var(--neutral-dark);
+    width: 40%;
     color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
+    align-self: flex-end;
   }
-  
-  .send-button:hover {
-    background-color: #45a049;
+
+  .window-chat-card.bot {
+    background-color: #202020;
+    width: 40%;
+    color: white;
+    align-self: flex-start;
   }
   </style>
   
