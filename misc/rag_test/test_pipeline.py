@@ -143,10 +143,6 @@ if __name__ == "__main__":
         chunk_size=500, chunk_overlap=100, add_start_index=True
     )
     all_splits = text_splitter.split_documents(docs)
-    print(len(all_splits))
-    print(all_splits[0])
-    print(all_splits[1])
-    print(all_splits[2])
 
     from langchain_huggingface import HuggingFaceEmbeddings
     # If applicable use Alibaba-NLP/gte-Qwen2-7B-instruct
