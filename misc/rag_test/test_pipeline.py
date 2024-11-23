@@ -164,10 +164,10 @@ if __name__ == "__main__":
     
     # 生成查询的假设性回答向量
     hypothetical_answer = generate_hypothetical_answer(question, chat_model)
-    print("Generated Hypothetical Answer: ", hypothetical_answer)
+    # print("Generated Hypothetical Answer: ", hypothetical_answer)
     # 将假设性回答转换为向量
     hypothetical_embedding = embeddings_model.embed_query(hypothetical_answer)
-     # 使用向量进行相似性搜索
+    # 使用向量进行相似性搜索
     retrieved_docs = vectorstore.similarity_search_by_vector(hypothetical_embedding, k=6)
 
     # 提取检索到的原始文档上下文
