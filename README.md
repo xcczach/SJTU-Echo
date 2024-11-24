@@ -20,6 +20,12 @@ Voice QA agent for SJTU campus guide
 - [ ] Speech to text
 - [ ] UI
 
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Usage
 
 ### Data scrapping
@@ -54,4 +60,9 @@ python embedder.py --content-json-path output/sample_content.json --output-dir o
 
 ```bash
 python test_rag.py
+```
+
+### Sample API POST
+```bash
+python test_client.py
 ```

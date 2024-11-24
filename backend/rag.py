@@ -35,17 +35,29 @@ def _get_answer_strategy_hypothetical_question(messages: list[BaseMessage], chat
     new_messages = messages + input_messages
     return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"link": retrieved_docs[0].metadata.get("url", "未提供")})
 
-def get_answer(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore, strategy: str="hypothetical_question"):
+def inference(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore, strategy: str="hypothetical_question"):
     if strategy == "hypothetical_question":
         return _get_answer_strategy_hypothetical_question(messages, chat_model, vectorstore)
     else:
         raise ValueError(f"Unknown strategy: {strategy}")
     
-def _test(question_str: str):
-    from utils.models import QwenModel
-    vectorstore = get_hf_vectorstore("output/sample_embeddings")
-    chat_model = QwenModel(model="Qwen/Qwen2.5-1.5B-Instruct")
-    messages = [HumanMessage(content=question_str)]
-    answer = get_answer(messages, chat_model, vectorstore)
-    print(answer.content)
-    print(answer.response_metadata["link"])
+def messages_to_json(messages: list[BaseMessage]):
+    result_list = []
+    for message in messages:
+        result_list.append({
+            "type": message.type,
+            "content": message.content,
+            "response_metadata": message.response_metadata
+        })
+    return {"messages": result_list}
+
+def json_to_messages(json_data: dict):
+    messages = []
+    for message_data in json_data["messages"]:
+        if message_data["type"] == "human":
+            messages.append(HumanMessage(content=message_data["content"], response_metadata=message_data["response_metadata"]))
+        elif message_data["type"] == "ai":
+            messages.append(AIMessage(content=message_data["content"], response_metadata=message_data["response_metadata"]))
+        else:
+            raise ValueError(f"Unknown message type: {message_data['type']}")
+    return messages
