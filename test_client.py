@@ -35,3 +35,15 @@ if __name__ == "__main__":
         print("Sample tts audio saved at output_audio.wav")
     else:
         print(f"Bad request：{response.status_code}")
+
+    url = "http://localhost:9834/asr"
+    audio_data, sample_rate = sf.read("output/ref_audio.mp3")
+    data = {"sample_rate": sample_rate, "audio_data": audio_data.tolist()}
+    start = timeit.default_timer()
+    response = requests.post(url, json=data, stream=True)
+    if response.status_code == 200:
+        end = timeit.default_timer()
+        print(f"TTS Time elapsed: {end - start}")
+        print(response.text)
+    else:
+        print(f"Bad request：{response.status_code}")
