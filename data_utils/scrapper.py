@@ -420,7 +420,10 @@ def _readability_process_content(content: str):
 
 
 def get_raw_content(content: str):
-    return content
+    return {
+        "title": "",
+        "body": content,
+    }
 
 
 async def _extract_content_static_async_helper(
