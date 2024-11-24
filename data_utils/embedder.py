@@ -3,18 +3,16 @@ from typing import Iterator
 
 from langchain_core.document_loaders import BaseLoader
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from bs4 import BeautifulSoup
-from typing import Callable, Any
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from typing import Callable
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, convert_to_openai_messages
-from langchain_core.outputs import ChatGeneration, ChatResult
-from langchain_core.callbacks import CallbackManagerForLLMRun
+from utils.models import QwenModel
+import os
+from tqdm.auto import tqdm
 
 
 def _get_content_by_key_recursive(data:dict, key:str):
@@ -50,47 +48,6 @@ class HTMLJSONLoader(BaseLoader):
                 metadata = _traverse_dict(item, self.content_key)
                 yield Document(page_content=page_content, metadata=metadata)
 
-class QwenModel(BaseChatModel):
-    model: str
-    def __init__(self, model: str):
-        super().__init__(model=model)
-        self._model = AutoModelForCausalLM.from_pretrained(
-            self.model,
-            torch_dtype="auto",
-            device_map="auto"
-        )
-        self._tokenizer = AutoTokenizer.from_pretrained(self.model)
-
-    def _generate(self, messages: list[BaseMessage], stop: list[str] | None = None, run_manager: CallbackManagerForLLMRun | None = None, **kwargs: Any) -> ChatResult:
-        oai_messages = convert_to_openai_messages(messages)
-        text = self._tokenizer.apply_chat_template(
-            oai_messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-        model_inputs = self._tokenizer([text], return_tensors="pt").to(self._model.device)
-        generated_ids = self._model.generate(
-            **model_inputs,
-            max_new_tokens=512
-        )
-        generated_ids = [
-            output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-        ]
-        response_text = self._tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-        response_message = AIMessage(
-            content=response_text
-        )
-        response_generation = ChatGeneration(message=response_message)
-        return ChatResult(generations=[response_generation])
-    
-    @property
-    def _llm_type(self) -> str:
-        return "qwen"
-    
-    @property
-    def _identifying_params(self) -> dict[str, Any]:
-        return {"model": self.model}
-
 def embedding_strategy_hypothetical_question(docs: list[Document], embeddings_model: Embeddings, result_path: str,chat_model: BaseChatModel=QwenModel("Qwen/Qwen2.5-1.5B-Instruct")):
     def generate_hypothetical_question(doc: Document, llm):
         from langchain_core.prompts import PromptTemplate
@@ -113,10 +70,11 @@ def embedding_strategy_hypothetical_question(docs: list[Document], embeddings_mo
     )
     all_splits = text_splitter.split_documents(docs)
     hypothetical_questions = []
-    for doc in all_splits:
+    for doc in tqdm(all_splits, desc="Generating hypothetical questions"):
         hypothetical_question = generate_hypothetical_question(doc, chat_model)
         hypothetical_question_doc = Document(page_content=hypothetical_question, metadata={"original_doc": doc.page_content, **doc.metadata})
         hypothetical_questions.append(hypothetical_question_doc)
+    print("Embedding hypothetical questions")
     Chroma.from_documents(documents=hypothetical_questions, embedding=embeddings_model, persist_directory=result_path)
 
 def save_vectorstore_from_huggingface(content_json_path: str, result_path: str, embedding_model_name: str, embedding_strategy: Callable[[list[Document], Embeddings, str], None]=
@@ -124,6 +82,10 @@ def save_vectorstore_from_huggingface(content_json_path: str, result_path: str, 
     """
     Create vectorstore from content_json_path (created from extract_content) with embedding_model_name; save the results result_path
     """
+    if not os.path.exists(result_path):
+        os.makedirs(result_path)
+    with open("embedding_metadata.json", "w") as f:
+        json.dump({"embedding_model_name": embedding_model_name}, f)
     loader = HTMLJSONLoader(content_json_path)
     docs = loader.load()
     embeddings_model = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={"trust_remote_code": True})

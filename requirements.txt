@@ -9,3 +9,4 @@ langchain-chroma==0.1.4
 langchain-huggingface==0.1.2
 huggingface_hub==0.26.2
 accelerate>=0.26.0
+tqdm==4.67.0
