@@ -84,7 +84,7 @@ def save_vectorstore_from_huggingface(content_json_path: str, result_path: str, 
     """
     if not os.path.exists(result_path):
         os.makedirs(result_path)
-    with open("embedding_metadata.json", "w") as f:
+    with open(f"{result_path}/embedding_metadata.json", "w") as f:
         json.dump({"embedding_model_name": embedding_model_name}, f)
     loader = HTMLJSONLoader(content_json_path)
     docs = loader.load()
