@@ -13,6 +13,11 @@ const routes = [
     name: 'Chat',
     component: Chat,
   },
+  {
+    path: '/chat/:sessionID',
+    name: 'ChatSession',
+    component: Chat,
+  }
 ];
 
 const router = createRouter({
