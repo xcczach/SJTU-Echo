@@ -24,8 +24,6 @@ Voice QA agent for SJTU campus guide
 
 ### Data scrapping
 
-#### Installation
-
 Currently only support running on windows.
 
 Extract links from a certain website recursively:
@@ -41,4 +39,19 @@ python data_scrapper.py --extract-sub-urls
 Extract content from a list of websites:
 ```bash
 python data_scrapper.py --extract-content
+```
+
+### Embedding
+
+Embed content from a json file (created by `--extract-content`):
+```bash
+python embedder.py --content-json-path output/sample_content.json --output-dir output/sample_embeddings
+```
+
+## Examples
+
+### RAG
+
+```bash
+python test_rag.py
 ```
