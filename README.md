@@ -22,8 +22,15 @@ Voice QA agent for SJTU campus guide
 
 ## Installation
 
+Install dependencies:
 ```bash
 pip install -r requirements.txt
+```
+
+Download the TTS checkpoint:
+```bash
+export HF_ENDPOINT="https://hf-mirror.com" # Optional, necessary if you are in China
+python ckpts/download.py
 ```
 
 ## Usage
@@ -63,6 +70,13 @@ python test_rag.py
 ```
 
 ### Sample API POST
+
+First start the default server:
+```bash
+python server.py
+```
+
+Then run the sample POST in another terminal:
 ```bash
 python test_client.py
 ```

@@ -167,3 +167,6 @@ output/*
 !output/sample_embeddings
 misc/rag_test/data/chroma/
 misc/rag_test/data/hypothetical_chroma/
+ckpts/*
+!ckpts/download.py
+output_audio.wav
