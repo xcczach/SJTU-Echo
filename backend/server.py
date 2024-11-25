@@ -9,6 +9,7 @@ from backend.asr import inference as asr_inference
 from fastapi import FastAPI, Request
 from ml_web_inference import StreamingResponse, Response
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
 chat_model = None
 vectorstore = None
@@ -30,10 +31,12 @@ def launch_server(chat_model_name: str, hf_vectorstore_source_dir: str, port: in
     asr_model = get_asr_model()
 
     app = FastAPI()
+    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
     @app.post("/rag")
     async def rag(request: Request):
         messages_json = await request.json()
         messages = json_to_messages(messages_json)
+        print(messages)
         new_message = rag_inference(messages, chat_model, vectorstore)
         return messages_to_json([new_message])
     @app.post("/tts")
