@@ -95,7 +95,7 @@
 
   const localhost = "http://localhost";
   const port = "5000";
-  const apiUrl = `${localhost}:${port}/rag`;
+  const apiUrl = `${localhost}:${port}/test`;
 
   function navigateHome() {
     window.location.href = "/";
@@ -189,7 +189,7 @@
       try {
         const response = await axios.post(apiUrl, {
           sessionID: sessionID,
-          content: message.value,
+          content: message,
         });
         if (response.status === 200) {
           const newMessage = { from: "bot", content: response.data.message, sessionID: sessionID};

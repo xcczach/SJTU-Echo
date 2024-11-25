@@ -5,7 +5,7 @@ from time import sleep
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/send-message', methods=['POST'])
+@app.route('/test', methods=['POST'])
 def send_message():
     prompt = request.json
     sessionID = prompt.get('sessionID')
@@ -14,7 +14,7 @@ def send_message():
     sleep(2)
     print(f"Received message - Session ID: {sessionID}, Content: {content}")
 
-    return jsonify({"status": "success", "message": "Message received successfully."})
+    return jsonify({"status": "success", "message": "Message received: " + content})
 
 if __name__ == '__main__':
     app.run(debug=True)
