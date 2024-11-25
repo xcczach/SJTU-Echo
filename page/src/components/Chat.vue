@@ -48,8 +48,8 @@
             :key="index"
             class="window-chat-card"
             :class="message.from"
+            v-html="message.content"
           >
-            {{ message.content }}
           </div>
         </div>
         <div class="window-enter" v-if = "sessionID !== null">
@@ -94,8 +94,8 @@
   const userPrompt = ref("");
 
   const localhost = "http://localhost";
-  const port = "5000";
-  const apiUrl = `${localhost}:${port}/test`;
+  const port = "9834";
+  const apiUrl = `${localhost}:${port}/rag`;
 
   function navigateHome() {
     window.location.href = "/";
@@ -189,10 +189,17 @@
       try {
         const response = await axios.post(apiUrl, {
           sessionID: sessionID,
-          content: message,
+          messages: [{
+            type: "human",
+            content: message,
+            response_metadata: {}
+          }],
         });
         if (response.status === 200) {
-          const newMessage = { from: "bot", content: response.data.message, sessionID: sessionID};
+          const response_body = response.data.messages[response.data.messages.length - 1].content;
+          const response_link = response.data.messages[response.data.messages.length - 1].response_metadata.link;
+          const response_content = response_body + (response_link ? ` <br/><br/> <a href="${response_link}" target="_blank">相关链接</a>` : "");
+          const newMessage = { from: "bot", content: response_content, sessionID: sessionID };
           messages.value.push(newMessage);
           saveMessageData();
           scrollToBottom();
@@ -261,7 +268,7 @@
     margin-left: 23vw;
     padding-top: 20px;
     position: fixed;
-    background: transparent;
+    background: #101010;
     color: white;
     top: 0;
     left: 0;
