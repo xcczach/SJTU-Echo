@@ -53,7 +53,9 @@
           </div>
         </div>
         <div class="window-enter" v-if = "sessionID !== null">
-          <button class="window-enter-voice">
+          <button 
+            class="window-enter-voice"
+          >
             <el-icon><Microphone /></el-icon>
           </button>
           <textarea 
@@ -70,6 +72,12 @@
             <el-icon><Promotion /></el-icon>
           </button>
         </div>
+        <div v-if="isASRPopupVisible">
+          <div>
+              <button @click="startRecording" :disabled="isRecording">Start Recording</button>
+              <button @click="stopRecording" :disabled="!isRecording">Stop Recording</button>
+          </div>
+        </div>
       </div>
     </div>
   </template>
@@ -85,7 +93,9 @@
   const sessionID = useRoute().params.sessionID ?? null;
   const userPrompt = ref("");
 
-  const apiUrl = "http://127.0.0.1:5000/send-message";
+  const localhost = "http://localhost";
+  const port = "5000";
+  const apiUrl = `${localhost}:${port}/rag`;
 
   function navigateHome() {
     window.location.href = "/";
