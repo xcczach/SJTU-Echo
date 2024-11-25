@@ -86,6 +86,13 @@
   import { ref, onMounted } from "vue";
   import { useRoute } from 'vue-router';
   import axios from "axios";
+  import DOMPurify from "dompurify";
+  import MarkdownIt from "markdown-it";
+  const md = new MarkdownIt({
+    html: false,
+    linkify: true,
+    typographer: true,
+  });
 
   const sessions = ref([]);   // store all sessions
   const messages = ref([]);   // store all messages
@@ -198,8 +205,15 @@
         if (response.status === 200) {
           const response_body = response.data.messages[response.data.messages.length - 1].content;
           const response_link = response.data.messages[response.data.messages.length - 1].response_metadata.link;
-          const response_content = response_body + (response_link ? ` <br/><br/> <a href="${response_link}" target="_blank">相关链接</a>` : "");
-          const newMessage = { from: "bot", content: response_content, sessionID: sessionID };
+          const response_content =
+          response_body +
+          (response_link
+            ? `\n\n[相关链接](${response_link})`
+            : "");
+        
+          const parsedContent = md.render(response_content);
+          const sanitizedContent = DOMPurify.sanitize(parsedContent);
+          const newMessage = { from: "bot", content: sanitizedContent, sessionID: sessionID };
           messages.value.push(newMessage);
           saveMessageData();
           scrollToBottom();
@@ -268,7 +282,7 @@
     margin-left: 23vw;
     padding-top: 20px;
     position: fixed;
-    background: #101010;
+    background: transparent;
     color: white;
     top: 0;
     left: 0;
