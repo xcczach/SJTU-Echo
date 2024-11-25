@@ -19,3 +19,64 @@ Voice QA agent for SJTU campus guide
 - [ ] Text to speech
 - [ ] Speech to text
 - [ ] UI
+
+## Installation
+
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+Download the TTS checkpoint:
+```bash
+export HF_ENDPOINT="https://hf-mirror.com" # Optional, necessary if you are in China
+python ckpts/download.py
+```
+
+## Usage
+
+### Data scrapping
+
+Currently only support running on windows.
+
+Extract links from a certain website recursively:
+```bash
+python data_scrapper.py --extract-links
+```
+
+Extract sub-urls (urls starting with the same base url) from a base url:
+```bash
+python data_scrapper.py --extract-sub-urls
+```
+
+Extract content from a list of websites:
+```bash
+python data_scrapper.py --extract-content
+```
+
+### Embedding
+
+Embed content from a json file (created by `--extract-content`):
+```bash
+python embedder.py --content-json-path output/sample_content.json --output-dir output/sample_embeddings
+```
+
+## Examples
+
+### RAG
+
+```bash
+python test_rag.py
+```
+
+### Sample API POST
+
+First start the default server:
+```bash
+python server.py
+```
+
+Then run the sample POST in another terminal:
+```bash
+python test_client.py
+```

@@ -1,0 +1,6 @@
+funasr>=1.1.3
+funasr-onnx
+soundfile
+scipy
+ml_web_inference
+# May require more
