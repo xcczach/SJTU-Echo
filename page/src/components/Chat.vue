@@ -100,7 +100,7 @@
   const sessionID = useRoute().params.sessionID ?? null;
   const userPrompt = ref("");
 
-  const localhost = "https://8983-123-121-180-211.ngrok-free.app";
+  const localhost = "https://a6ce-123-121-180-211.ngrok-free.app";
   const port = "9834";
   const apiUrl = localhost.includes("localhost") ? `${localhost}:${port}/rag` : `${localhost}/rag`;
 
