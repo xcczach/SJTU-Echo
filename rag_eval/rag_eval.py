@@ -89,8 +89,46 @@ def eval_rag_strategy(strategy: Callable[[str], tuple[str,list[str]]] | RAGStrat
         rag_results.append(RAGResult(question=question, retrieved_context=retrieved_context, response=response))
     return _eval_rag_results(rag_results)
 
+from backend.rag import get_hf_vectorstore, inference
+from langchain_core.messages import HumanMessage, BaseMessage
+from langchain_core.language_models import BaseChatModel
+from langchain_core.vectorstores import VectorStore
+from utils.models import QwenModel
+from langchain import hub
+_hypo_vectorstore = None
+_hypo_chat_model = None
+_hypo_question_prompt = None
+def _get_answer_strategy_hypothetical_question(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore):
+    def generate_hypothetical_answer(question: str, chat_model) -> str:
+        prompt_text = f"根据以下问题生成一个简洁的假设性回答，以便用于相似性检索优化：\n\n问题：{question}\n\n假设性回答："
+        input_messages = [HumanMessage(content=prompt_text)]
+        response = chat_model.invoke(input=input_messages).content
+        return response.strip()
+    question = messages[-1].content
+    embeddings_model = vectorstore.embeddings
+    hypothetical_answer = generate_hypothetical_answer(question, chat_model)
+    hypothetical_embedding = embeddings_model.embed_query(hypothetical_answer)
+    retrieved_docs = vectorstore.similarity_search_by_vector(hypothetical_embedding, k=6)
+    combined_context = "\n\n".join([doc.metadata["original_doc"] for doc in retrieved_docs])
+    input_messages = _hypo_question_prompt.invoke(
+        {
+            "context": combined_context, 
+            "question": question
+        }
+    ).to_messages()
+    new_messages = messages + input_messages
+    response, context = chat_model.invoke(input=new_messages).content, [doc.metadata["original_doc"] for doc in retrieved_docs]
+    print(response, len(context))
+    return response, context
 def _strategy_hypothetical_question(question: str):
-    pass
+    global _hypo_vectorstore, _hypo_chat_model, _hypo_question_prompt
+    if _hypo_vectorstore is None:
+        _hypo_vectorstore = get_hf_vectorstore("output/sample_embeddings")
+    if _hypo_chat_model is None:
+        _hypo_chat_model = QwenModel(model="Qwen/Qwen2.5-1.5B-Instruct")
+    if _hypo_question_prompt is None:
+        _hypo_question_prompt = hub.pull("rlm/rag-prompt")
+    return _get_answer_strategy_hypothetical_question([HumanMessage(content=question)], _hypo_chat_model, _hypo_vectorstore)
 
 def _strategy_nothing(question: str):
     return "", [""]
