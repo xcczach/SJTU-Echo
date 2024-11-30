@@ -61,6 +61,17 @@ Embed content from a json file (created by `--extract-content`):
 python embedder.py --content-json-path output/sample_content.json --output-dir output/sample_embeddings
 ```
 
+### RAG Evaluation
+
+Evaluate the RAG model:
+```bash
+export OPENAI_API_KEY=<your_openai_api_key>
+export OPENAI_API_BASE=<your_openai_api_base> # if any
+python rag_eval.py --strategy <strategy>
+```
+
+You can start with strategy `nothing` for test.
+
 ## Examples
 
 ### RAG

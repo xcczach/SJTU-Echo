@@ -171,3 +171,5 @@ ckpts/*
 !ckpts/download.py
 output_audio.wav
 !output/ref_audio.mp3
+node_modules/
+*.out
