@@ -9,6 +9,10 @@ defineProps({
 function handleClick() {
   window.location.href = '/chat';
 }
+
+function toRepo() {
+  window.location.href = 'https://github.com/xcczach/SJTU-Echo/';
+}
 </script>
 
 <template>
@@ -24,6 +28,7 @@ function handleClick() {
         Video
       </button>
       <button @click="handleClick" class="home-btn-start">Get Started!</button>
+      <button @click="toRepo" class="home-btn-start">View Source</button>
     </div>
   </div>
 </template>
@@ -87,7 +92,6 @@ h3 {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-right: 40px;
   padding: 5px 40px;
   font-size: 1.2rem;
   color: var(--background-primary);
@@ -103,6 +107,7 @@ h3 {
 .home-btn-start {
   display: block;
   padding: 5px 40px;
+  margin-left: 40px;
   font-size: 1.2rem;
   color: var(--text-primary);
   background-color: transparent;
