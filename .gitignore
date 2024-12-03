@@ -170,3 +170,6 @@ misc/rag_test/data/hypothetical_chroma/
 ckpts/*
 !ckpts/download.py
 output_audio.wav
+!output/ref_audio.mp3
+node_modules/
+*.out

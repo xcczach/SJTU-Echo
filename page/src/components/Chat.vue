@@ -48,8 +48,8 @@
             :key="index"
             class="window-chat-card"
             :class="message.from"
+            v-html="message.content"
           >
-            {{ message.content }}
           </div>
         </div>
         <div class="window-enter" v-if = "sessionID !== null">
@@ -86,6 +86,13 @@
   import { ref, onMounted } from "vue";
   import { useRoute } from 'vue-router';
   import axios from "axios";
+  import DOMPurify from "dompurify";
+  import MarkdownIt from "markdown-it";
+  const md = new MarkdownIt({
+    html: false,
+    linkify: true,
+    typographer: true,
+  });
 
   const sessions = ref([]);   // store all sessions
   const messages = ref([]);   // store all messages
@@ -93,9 +100,9 @@
   const sessionID = useRoute().params.sessionID ?? null;
   const userPrompt = ref("");
 
-  const localhost = "http://localhost";
-  const port = "5000";
-  const apiUrl = `${localhost}:${port}/test`;
+  const localhost = "https://a6ce-123-121-180-211.ngrok-free.app";
+  const port = "9834";
+  const apiUrl = localhost.includes("localhost") ? `${localhost}:${port}/rag` : `${localhost}/rag`;
 
   function navigateHome() {
     window.location.href = "/";
@@ -189,10 +196,24 @@
       try {
         const response = await axios.post(apiUrl, {
           sessionID: sessionID,
-          content: message,
+          messages: [{
+            type: "human",
+            content: message,
+            response_metadata: {}
+          }],
         });
         if (response.status === 200) {
-          const newMessage = { from: "bot", content: response.data.message, sessionID: sessionID};
+          const response_body = response.data.messages[response.data.messages.length - 1].content;
+          const response_link = response.data.messages[response.data.messages.length - 1].response_metadata.link;
+          const response_content =
+          response_body +
+          (response_link
+            ? `\n\n[相关链接](${response_link})`
+            : "");
+        
+          const parsedContent = md.render(response_content);
+          const sanitizedContent = DOMPurify.sanitize(parsedContent);
+          const newMessage = { from: "bot", content: sanitizedContent, sessionID: sessionID };
           messages.value.push(newMessage);
           saveMessageData();
           scrollToBottom();
