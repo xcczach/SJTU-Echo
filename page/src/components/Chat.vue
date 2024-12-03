@@ -57,6 +57,7 @@
         </div>
         <div class="window-enter" v-if = "sessionID !== null">
           <button 
+            @click="onUseVoice()"
             class="window-enter-voice"
           >
             <el-icon><Microphone /></el-icon>
@@ -75,12 +76,21 @@
             <el-icon><Promotion /></el-icon>
           </button>
         </div>
-        <div v-if="isASRPopupVisible">
-          <div>
-              <button @click="startRecording" :disabled="isRecording">Start Recording</button>
-              <button @click="stopRecording" :disabled="!isRecording">Stop Recording</button>
+        <div class="ASR-overlay" v-if="isASRPopupVisible">
+          <div class="ASR-popup" v-if="isASRPopupVisible">
+            <div>
+                <button @click="isRecording ? stopRecording() : startRecording()" class="ASR-button">
+                  {{ isRecording ? 'Stop Recording' : 'Start Recording' }}
+                </button>
+            </div>
+            <div class="ASR-icon">
+              <el-icon><Mic /></el-icon>
+            </div>
+            <button class="ASR-close" @click="offUseVoice()">
+              <el-icon><Close /></el-icon>
+            </button>
           </div>
-        </div>
+        </div>  
       </div>
     </div>
   </template>
@@ -91,6 +101,8 @@
   import axios from "axios";
   import DOMPurify from "dompurify";
   import MarkdownIt from "markdown-it";
+  import { isRecording, startRecording, stopRecording } from "./AudioRec.js";
+import { Microphone } from "@element-plus/icons-vue";
   const md = new MarkdownIt({
     html: false,
     linkify: true,
@@ -107,6 +119,8 @@
   const port = "9834";
   const apiUrl = localhost.includes("localhost") ? `${localhost}:${port}/rag` : `${localhost}/rag`;
 
+  const isASRPopupVisible = ref(false);
+
   function navigateHome() {
     window.location.href = "/";
   }
@@ -114,6 +128,14 @@
   function navigateToSession(sessionID) {
     // Redirect to the chat window with the session ID
     window.location.href = `/chat/${sessionID}`;
+  }
+
+  function onUseVoice() {
+    isASRPopupVisible.value = true;
+  }
+
+  function offUseVoice() {
+    isASRPopupVisible.value = false;
   }
 
   function toggleMenu(index) {
@@ -250,6 +272,7 @@
     if (messageData) {
       messages.value = JSON.parse(messageData);
     }
+    scrollToBottom();
   }
 
   onMounted(() => {
@@ -583,6 +606,76 @@
     width: 40%;
     color: var(--text-primary);
     align-self: flex-start;
+  }
+
+  .ASR-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: block;
+  }
+
+  .ASR-popup {
+    position: absolute;
+    bottom: 45vh;
+    left: 50%;
+    height: 20vh;
+    width: 30vw;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background: var(--background-secondary);
+    border-radius: 10px;
+    color: var(--text-primary);
+    z-index: 1000;
+    font-family: var(--font-family);
+  }
+
+  .ASR-button {
+    width: 180px;
+    height: 50px;
+    transition: background-color 0.3s;
+    text-align: center;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 10px 20px;
+    padding: 10px;
+    font-family: var(--font-family);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .ASR-button:hover {
+    background-color: var(--accent-color);
+  }
+
+  .ASR-icon {
+    width: 20%;
+    color: var(--neutral-dark);
+  }
+
+  .ASR-close {
+    align-self: flex-start;
+    right: 0;
+    top: 0;
+    background: none;
+    border: none;
+    color: var(--neutral-dark);
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: color 0.3s;
   }
   </style>
   
