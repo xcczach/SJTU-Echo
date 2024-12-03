@@ -17,9 +17,11 @@ function toRepo() {
 
 <template>
   <div class="greetings">
-    <div class="main-title">{{ msg }}</div>
+    <div class="main-title">
+      Welcome to <span class="gradient-text">SJTU Echo</span>
+    </div>
     <div class="sub-title">
-      Your AI assistant for campus guide and information.
+      Your AI assistant for campus guide and information service.
     </div>
 
     <div class="home-btn-container">
@@ -58,7 +60,7 @@ h3 {
 .sub-title {
   font-family: var(--font-family);
   font-size: 3rem;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--neutral-dark);
   margin: 20px 0;
 }
@@ -73,6 +75,14 @@ h3 {
 .greetings h3 {
   text-align: center;
 }
+
+.gradient-text {
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--secondary-color), var(--heading));
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+  }
 
 @media (min-width: 1024px) {
   .greetings h1,

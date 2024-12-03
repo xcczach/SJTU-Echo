@@ -24,6 +24,9 @@ a {
   --secondary-color: #e07557; /* 辅色 */
   --accent-color: #71b5f1; /* 强调色 */
 
+  /* 主标题色 */
+  --heading: #3e63d1; 
+
   /* 中性色 */
   --neutral-light: #3f4a9c; /* 次要文字色 */
   --neutral-dark: #9E9E9E; /* 分隔线/边框 */

@@ -14,7 +14,7 @@ import WelcomeItem from './WelcomeItem.vue'
       </main>
       <header>
         <div class="wrapper">
-            <HelloWorld msg="Welcome to SJTU Echo" />
+            <HelloWorld/>
         </div>
       </header>
 
