@@ -1,4 +1,7 @@
 <template>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
     <div class="chat-app">
       <div class="sidebar">
         <div class="sidebar-top">
@@ -266,8 +269,8 @@
   .sidebar {
     width: 20vw;
     height: 100vh;
-    background-color: #202020;
-    color: white;
+    background-color: var(--background-secondary);
+    color: var(--text-primary);
     position: fixed;
     top: 0;
     left: 0;
@@ -283,7 +286,7 @@
     padding-top: 20px;
     position: fixed;
     background: transparent;
-    color: white;
+    color: var(--text-primary);
     top: 0;
     left: 0;
     display: flex;
@@ -297,7 +300,7 @@
     width: 100%;
     margin: 0;
     font-size: 1.5rem;
-    color: var(--accent-color);
+    color: var(--primary-color);
     font-weight: 700;
   }
 
@@ -353,7 +356,7 @@
     height: 45px;
     transition: background-color 0.3s;
     text-align: center;
-    background-color: var(--primary-color);
+    background-color: var(--secondary-color);
     color: white;
     border: none;
     border-radius: 10px;
@@ -361,11 +364,13 @@
     margin: 10px 20px;
     padding: 10px;
     font-family: var(--font-family);
+    font-size: 1rem;
     font-weight: 700;
   }
 
   .sidebar-create-button:hover {
-    background-color: var(--accent-color);
+    background-color: var(--secondary-color);
+    border: none;
   }
 
   .sidebar-sessions {
@@ -380,17 +385,19 @@
   .sidebar-session-card {
     padding: 10px 10px;
     border-radius: 5px;
-    border-bottom: 1px solid var(--primary-color);
+    border-bottom: 1px solid var(--secondary-color);
     display: flex;
     justify-content: space-between;
     position: relative;
     align-items: center;
-    color: white;
-    transition: background-color 0.3s;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   .sidebar-session-card:hover {
-    background-color: var(--primary-color);
+    background-color: var(--secondary-color);
+    color: var(--background-primary);
   }
 
   .siderbar-session-card-enter-button {
@@ -411,7 +418,7 @@
     width: 30px;
     height: 30px;
     border-radius: 5px;
-    color: white;
+    color: var(--text-secondary);
     font-size: 0.5rem;
     cursor: pointer;
     transition: background-color 0.3s;
@@ -426,7 +433,7 @@
     height: auto;
     top: 100%;
     right: 0;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: var(--text-secondary);
     border: 1px solid var(--neutral-dark);
     border-radius: 5px;
     padding: 10px;
@@ -471,14 +478,14 @@
 
   .window-enter-textbox {
     padding: 10px;
-    background-color: #303030;
+    background-color: var(--background-secondary);
     border: none;
     border-radius: 20px;
     width: 60%;
     height: 100%;
     resize: none;
     padding: 15px;
-    color: white;
+    color: var(--text-primary);
     font-size: 1.2rem;
     font-family: var(--font-family);
   }
@@ -487,7 +494,7 @@
     padding: 10px 20px;
     width: 60px;
     height: 60px;
-    background-color: var(--secondary-color);
+    background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 15px;
@@ -547,12 +554,12 @@
   }
 
   .window-chat::-webkit-scrollbar-track {
-    background: #202020;
+    background: var(--background-secondary);
     border-radius: 10px;
   }
 
   .window-chat::-webkit-scrollbar-thumb {
-    background-color: #303030;
+    background-color: var(--accent-color);
     border-radius: 10px;
   }
 
@@ -565,16 +572,16 @@
   }
 
   .window-chat-card.user {
-    background-color: var(--neutral-dark);
+    background-color: var(--primary-color);
     width: 40%;
     color: white;
     align-self: flex-end;
   }
 
   .window-chat-card.bot {
-    background-color: #202020;
+    background-color: var(--background-secondary);
     width: 40%;
-    color: white;
+    color: var(--text-primary);
     align-self: flex-start;
   }
   </style>

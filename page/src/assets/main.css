@@ -2,7 +2,7 @@
 
 #app {
   max-width: 1280px;
-  margin: 0 auto;
+  margin: 0px auto;
   padding: 2rem;
   font-weight: normal;
 }
@@ -14,32 +14,26 @@ a {
   padding: 3px;
 }
 
-.purple {
-  text-decoration: none;
-  color: var(--accent-color);
-  transition: 0.4s;
-  padding: 3px;
-}
-
 :root {
   /* 背景色 */
-  --background-primary: #1E1B2E; /* 主背景色 */
-  --background-secondary: #29243C; /* 区域背景色 */
+  --background-primary: #FFFFFF; /* 主背景色 */
+  --background-secondary: #F5F5F5; /* 区域背景色 */
 
   /* 紫色系主色 */
-  --primary-color: #7E57C2; /* 主色 */
-  --secondary-color: #5C4D9D; /* 辅色 */
-  --accent-color: #B388FF; /* 强调色 */
+  --primary-color: #678fc7; /* 主色 */
+  --secondary-color: #e07557; /* 辅色 */
+  --accent-color: #71b5f1; /* 强调色 */
 
   /* 中性色 */
-  --neutral-light: #D1C4E9; /* 次要文字色 */
-  --neutral-dark: #4A4A66; /* 分隔线/边框 */
+  --neutral-light: #3f4a9c; /* 次要文字色 */
+  --neutral-dark: #9E9E9E; /* 分隔线/边框 */
 
   /* 基本文字颜色 */
-  --text-primary: #FFFFFF; /* 主文字 */
+  --text-primary: #1E1B2E; /* 主文字 */
+  --text-secondary: #4F4F4F; /* 次要文字 */
 
   /* 基本字体 */
-  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-family: 'Poppins', system-ui, Tahoma, Geneva, Verdana, sans-serif;
 }
 
 @media (hover: hover) {
