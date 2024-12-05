@@ -94,7 +94,7 @@ import axios from "axios";
 import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
 import { Microphone, VideoPlay, VideoPause } from "@element-plus/icons-vue";
-import { ragEndpoint, asrEndpoint } from "./ServerConfig.js";
+import { ragEndpoint, asrEndpoint, ttsEndpoint } from "./ServerConfig.js";
 const md = new MarkdownIt({
   html: false,
   linkify: true,
@@ -271,6 +271,18 @@ function scrollToBottom() {
   }, 0);
 }
 
+async function getTTSResult(content) {
+  const response = await axios.post(ttsEndpoint, {
+    sessionID: sessionID,
+    text: content,
+  }, {
+    responseType: "blob",
+  });
+  const audioBlob = response.data;
+  const audioUrl = URL.createObjectURL(audioBlob);
+  return audioUrl;
+}
+
 async function sendPrompt(message, audioUrl) {
   if (message) {
     messages.value.push({ from: "user", content: message, sessionID: sessionID, audioUrl: audioUrl === undefined ? null : audioUrl });
@@ -289,6 +301,7 @@ async function sendPrompt(message, audioUrl) {
       });
       if (response.status === 200) {
         const response_body = response.data.messages[response.data.messages.length - 1].content;
+        const audioUrl = await getTTSResult(response_body);
         const response_link = response.data.messages[response.data.messages.length - 1].response_metadata.link;
         const response_content =
           response_body +
@@ -298,7 +311,7 @@ async function sendPrompt(message, audioUrl) {
 
         const parsedContent = md.render(response_content);
         const sanitizedContent = DOMPurify.sanitize(parsedContent);
-        const newMessage = { from: "bot", content: sanitizedContent, sessionID: sessionID };
+        const newMessage = { from: "bot", content: sanitizedContent, sessionID: sessionID, audioUrl: audioUrl };
         messages.value.push(newMessage);
         saveMessageData();
         scrollToBottom();
