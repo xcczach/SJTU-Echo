@@ -48,8 +48,25 @@
       </div>
       <div class="window-chat" v-if="sessionID !== null">
         <div v-for="(message, index) in MessagesforSession()" :key="index" class="window-chat-card"
-          :class="message.from" v-html="message.content">
+          :class="message.from">
+          <div v-html="message.content"></div>
+          <div v-if="message.audioUrl">
+            <audio style="display: none;" :id="'audio-' + index" @ended="audioEnded(index)">
+              <source :src="message.audioUrl" type="audio/mp3" />
+              Your browser does not support the audio element.
+            </audio>
+            <button @click="playAudio(index)" class="inline-play-button">
+              <el-icon v-if="!isPlaying[index]">
+                <VideoPlay />
+              </el-icon>
+              <el-icon v-else>
+                <VideoPause />
+              </el-icon>
+              <!-- {{ isPlaying[index] ? "Pause" : "Play" }} -->
+            </button>
+          </div>
         </div>
+
       </div>
       <div class="window-enter" v-if="sessionID !== null">
         <button @click="isRecording ? stopRecording() : startRecording()" class="window-enter-voice"
@@ -76,7 +93,7 @@ import { useRoute } from 'vue-router';
 import axios from "axios";
 import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
-import { Microphone } from "@element-plus/icons-vue";
+import { Microphone, VideoPlay, VideoPause } from "@element-plus/icons-vue";
 import { ragEndpoint, asrEndpoint } from "./ServerConfig.js";
 const md = new MarkdownIt({
   html: false,
@@ -94,7 +111,9 @@ const isRecording = ref(false);
 let mediaRecorder = null;
 let audioChunks = [];
 
-const sendAudioToASR = async (sampleRate, audioData) => {
+const isPlaying = ref([]);
+
+const sendAudioToASR = async (sampleRate, audioData, audioUrl) => {
   try {
     const response = await fetch(asrEndpoint, {
       method: "POST",
@@ -112,11 +131,28 @@ const sendAudioToASR = async (sampleRate, audioData) => {
     }
 
     const result = await response.text();
-    sendPrompt(result);
+    sendPrompt(result, audioUrl);
   } catch (error) {
     console.error("Error sending audio to ASR:", error);
   }
 };
+
+function audioEnded(index) {
+  isPlaying.value[index] = false;
+}
+
+function playAudio(index) {
+  const audioElement = document.getElementById(`audio-${index}`);
+
+  if (audioElement.paused) {
+    audioElement.play();
+    isPlaying.value[index] = true;
+  } else {
+    audioElement.pause();
+    isPlaying.value[index] = false;
+  }
+}
+
 const startRecording = async () => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -139,7 +175,8 @@ const startRecording = async () => {
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       const audioData = Array.from(audioBuffer.getChannelData(0));
       const sampleRate = audioBuffer.sampleRate;
-      sendAudioToASR(sampleRate, audioData);
+      const audioUrl = URL.createObjectURL(audioBlob);
+      sendAudioToASR(sampleRate, audioData, audioUrl);
     };
 
     mediaRecorder.start();
@@ -234,9 +271,9 @@ function scrollToBottom() {
   }, 0);
 }
 
-async function sendPrompt(message) {
+async function sendPrompt(message, audioUrl) {
   if (message) {
-    messages.value.push({ from: "user", content: message, sessionID: sessionID });
+    messages.value.push({ from: "user", content: message, sessionID: sessionID, audioUrl: audioUrl === undefined ? null : audioUrl });
     userPrompt.value = "";
     saveMessageData();
     scrollToBottom();
@@ -283,7 +320,15 @@ function MessagesforSession() {
 }
 
 function saveMessageData() {
-  localStorage.setItem("messages", JSON.stringify(messages.value));
+  const text_messages = messages.value.map((message) => {
+    return {
+      from: message.from,
+      content: message.content,
+      sessionID: message.sessionID,
+      audioUrl: null,
+    };
+  });
+  localStorage.setItem("messages", JSON.stringify(text_messages));
 }
 
 // save the session data to local storage
@@ -650,73 +695,14 @@ onMounted(() => {
   align-self: flex-start;
 }
 
-.ASR-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
-  display: block;
-}
-
-.ASR-popup {
-  position: absolute;
-  bottom: 45vh;
-  left: 50%;
-  height: 20vh;
-  width: 30vw;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding: 20px;
-  background: var(--background-secondary);
-  border-radius: 10px;
-  color: var(--text-primary);
-  z-index: 1000;
-  font-family: var(--font-family);
-}
-
-.ASR-button {
-  width: 180px;
-  height: 50px;
-  transition: background-color 0.3s;
-  text-align: center;
-  background-color: var(--primary-color);
+.inline-play-button {
+  background: var(--secondary-color);
+  width: 30px;
+  height: 30px;
+  background-color: var(--secondary-color);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 5px;
   cursor: pointer;
-  margin: 10px 20px;
-  padding: 10px;
-  font-family: var(--font-family);
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.ASR-button:hover {
-  background-color: var(--accent-color);
-}
-
-.ASR-icon {
-  width: 20%;
-  color: var(--neutral-dark);
-}
-
-.ASR-close {
-  align-self: flex-start;
-  right: 0;
-  top: 0;
-  background: none;
-  border: none;
-  color: var(--neutral-dark);
-  width: 40px;
-  height: 40px;
-  cursor: pointer;
-  transition: color 0.3s;
 }
 </style>
