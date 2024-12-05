@@ -57,10 +57,11 @@
         </div>
         <div class="window-enter" v-if = "sessionID !== null">
           <button 
-            @click="onUseVoice()"
+            @click="isRecording ? stopRecording() : startRecording()"
             class="window-enter-voice"
+            :class="{'recording': isRecording, 'not-recording': !isRecording}"
           >
-            <el-icon><Microphone /></el-icon>
+            <el-icon><Microphone/></el-icon>
           </button>
           <textarea 
             class="window-enter-textbox" 
@@ -76,21 +77,6 @@
             <el-icon><Promotion /></el-icon>
           </button>
         </div>
-        <div class="ASR-overlay" v-if="isASRPopupVisible">
-          <div class="ASR-popup" v-if="isASRPopupVisible">
-            <div>
-                <button @click="isRecording ? stopRecording() : startRecording()" class="ASR-button">
-                  {{ isRecording ? 'Stop Recording' : 'Start Recording' }}
-                </button>
-            </div>
-            <div class="ASR-icon">
-              <el-icon><Mic /></el-icon>
-            </div>
-            <button class="ASR-close" @click="offUseVoice()">
-              <el-icon><Close /></el-icon>
-            </button>
-          </div>
-        </div>  
       </div>
     </div>
   </template>
@@ -101,7 +87,7 @@
   import axios from "axios";
   import DOMPurify from "dompurify";
   import MarkdownIt from "markdown-it";
-  import { Microphone } from "@element-plus/icons-vue";
+  import { Microphone} from "@element-plus/icons-vue";
   import { apiUrl } from "./ServerConfig.js";
   const md = new MarkdownIt({
     html: false,
@@ -114,8 +100,6 @@
   const activeMenuIndex = ref(null);
   const sessionID = useRoute().params.sessionID ?? null;
   const userPrompt = ref("");
-
-  const isASRPopupVisible = ref(false);
 
   const isRecording = ref(false); 
   const audioFile = ref(null);
@@ -161,14 +145,6 @@ const stopRecording = () => {
   function navigateToSession(sessionID) {
     // Redirect to the chat window with the session ID
     window.location.href = `/chat/${sessionID}`;
-  }
-
-  function onUseVoice() {
-    isASRPopupVisible.value = true;
-  }
-
-  function offUseVoice() {
-    isASRPopupVisible.value = false;
   }
 
   function toggleMenu(index) {
@@ -562,7 +538,18 @@ const stopRecording = () => {
     transition: background-color 0.3s;
   }
 
-  .window-enter-voice:hover {
+.window-enter-voice.recording {
+  background-color: #FF3B30;
+}
+.window-enter-voice.recording:hover {
+  background-color: #FF453A;
+}
+
+.window-enter-voice.not-recording {
+  background-color: var(--primary-color);
+}
+
+  .window-enter-voice.not-recording:hover {
     background-color: var(--accent-color);
   }
 
