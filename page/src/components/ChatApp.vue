@@ -112,8 +112,7 @@ const sendAudioToASR = async (sampleRate, audioData) => {
     }
 
     const result = await response.text();
-    console.log("ASR Result:", result); // 将服务端返回的文本打印到控制台
-    alert(`识别结果: ${result}`); // 弹窗显示识别结果
+    sendPrompt(result);
   } catch (error) {
     console.error("Error sending audio to ASR:", error);
   }
