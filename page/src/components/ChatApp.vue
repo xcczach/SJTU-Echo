@@ -91,7 +91,6 @@
 import { ref, onMounted, nextTick } from "vue";
 import { useRoute } from 'vue-router';
 import axios from "axios";
-import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
 import { Microphone, VideoPlay, VideoPause } from "@element-plus/icons-vue";
 import { ragEndpoint, asrEndpoint, ttsEndpoint } from "./ServerConfig.js";
@@ -322,9 +321,12 @@ async function sendPrompt(message, audioUrl) {
             ? `\n\n[相关链接](${response_link})`
             : "");
 
-        const parsedContent = md.render(response_content);
-        const sanitizedContent = DOMPurify.sanitize(parsedContent);
-        const newMessage = { from: "bot", content: sanitizedContent, sessionID: sessionID, audioUrl: audioUrl };
+        let parsedContent = md.render(response_content);
+        parsedContent = parsedContent.replace(
+          /<a\s+href=/g,
+          '<a target="_blank" href='
+        );
+        const newMessage = { from: "bot", content: parsedContent, sessionID: sessionID, audioUrl: audioUrl };
         messages.value.push(newMessage);
         saveMessageData();
         scrollToBottom();
