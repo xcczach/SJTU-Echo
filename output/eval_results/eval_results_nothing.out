@@ -1,0 +1,6 @@
+Results for nothing:
+context_recall: 0.7545454545454545
+faithfulness: nan
+answer_relevancy: 0.0
+semantic_similarity: 0.7249963470946348
+llm_context_precision_without_reference: 0.0

@@ -67,7 +67,7 @@ Evaluate the RAG model:
 ```bash
 export OPENAI_API_KEY=<your_openai_api_key>
 export OPENAI_API_BASE=<your_openai_api_base> # if any
-python rag_eval.py --strategy <strategy>
+python eval_rag.py --strategy <strategy>
 ```
 
 You can start with strategy `nothing` for test.

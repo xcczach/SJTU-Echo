@@ -165,6 +165,7 @@ cython_debug/
 output/*
 !output/sample_content.json
 !output/sample_embeddings
+!output/eval_results/
 misc/rag_test/data/chroma/
 misc/rag_test/data/hypothetical_chroma/
 ckpts/*
@@ -172,5 +173,4 @@ ckpts/*
 output_audio.wav
 !output/ref_audio.mp3
 node_modules/
-*.out
 .vscode/

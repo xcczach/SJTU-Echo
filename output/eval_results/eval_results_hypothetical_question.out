@@ -1,0 +1,6 @@
+Results for hypothetical_question:
+context_recall: 0.9233630952380951
+faithfulness: 0.5554351301719722
+answer_relevancy: 0.6297305926145685
+semantic_similarity: 0.9174962894424684
+llm_context_precision_without_reference: 0.7431237373512877

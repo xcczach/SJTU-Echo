@@ -10,7 +10,7 @@ if __name__ == "__main__":
     print(f" Evaluating strategy: {args.strategy}")
     eval_result = eval_rag_strategy(args.strategy)
     eval_statistics = eval_result["mean"]
-    result_file_name = f"eval_results_{args.strategy}.out"
+    result_file_name = f"output/eval_results/eval_results_{args.strategy}.out"
     with open(result_file_name, "w") as f:
         f.write(f"Results for {args.strategy}:\n")
         for key, value in eval_statistics.items():

@@ -7,6 +7,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
 import os
 from typing import Callable,Literal
+from tqdm.auto import tqdm
 
 class RAGResult:
     def __init__(self, question: str, retrieved_context: list[str], response: str):
@@ -36,7 +37,7 @@ def _eval_rag_results(rag_results: list[RAGResult]):
             response=rag_result.response,
             reference=ground_truth,
         )
-    samples = [get_single_turn_sample(rag_result) for rag_result in rag_results]
+    samples = [get_single_turn_sample(rag_result) for rag_result in tqdm(rag_results, desc="Creating ChatGPT ground truths")]
     dataset = EvaluationDataset(samples=samples)
 
     evaluator_llm = LangchainLLMWrapper(ChatOpenAI(
@@ -84,7 +85,7 @@ def eval_rag_strategy(strategy: Callable[[str], tuple[str,list[str]]] | RAGStrat
         strategy = globals()["_strategy_"+strategy]
     
     rag_results = []
-    for question in questions:
+    for question in tqdm(questions, desc="RAG generation"):
         response, retrieved_context = strategy(question)
         rag_results.append(RAGResult(question=question, retrieved_context=retrieved_context, response=response))
     return _eval_rag_results(rag_results)
@@ -118,7 +119,6 @@ def _get_answer_strategy_hypothetical_question(messages: list[BaseMessage], chat
     ).to_messages()
     new_messages = messages + input_messages
     response, context = chat_model.invoke(input=new_messages).content, [doc.metadata["original_doc"] for doc in retrieved_docs]
-    print(response, len(context))
     return response, context
 def _strategy_hypothetical_question(question: str):
     global _hypo_vectorstore, _hypo_chat_model, _hypo_question_prompt
