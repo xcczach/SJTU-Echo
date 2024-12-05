@@ -92,7 +92,7 @@ def inference(text: str, model, config):
     result_arrs = []
     for segment in text_segments:
         result_arrs.append(_get_result_arr(segment, model, config, lang))
-    result_arr = cat(result_arrs, dim=1)
+    result_arr = cat(result_arrs)
     result = BytesIO()
     torchaudio.save(result, result_arr.unsqueeze(0), 24000, format="wav")
     result.seek(0)
