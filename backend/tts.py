@@ -45,7 +45,7 @@ def _get_result_arr(text: str, model, config, lang: str):
 
 def _split_text_multilang(text, threshold, lang='zh'):
     if lang == 'zh' or lang == 'jp':
-        sentences = re.split(r'(。|！|？|，|；|：|…)', text)
+        sentences = re.split(r'(。|！|？|；|：|…)', text)
         segments = []
         temp_segment = ""
         for i in range(0, len(sentences), 2):
