@@ -1,7 +1,7 @@
 <script setup>
-import HelloWorld from './Hello.vue'
-import TheWelcome from './TheWelcome.vue'
-import WelcomeItem from './WelcomeItem.vue'
+import HelloWorld from './HelloApp.vue'
+// import TheWelcome from './TheWelcome.vue'
+// import WelcomeItem from './WelcomeItem.vue'
 </script>
 
 <template>

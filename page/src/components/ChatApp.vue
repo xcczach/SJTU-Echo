@@ -70,7 +70,7 @@
           </textarea>
           <button 
             class="window-enter-send" 
-            @click="sendPrompt()"
+            @click="textfieldSendPrompt()"
             :disabled="!userPrompt"
           >
             <el-icon><Promotion /></el-icon>
@@ -101,8 +101,8 @@
   import axios from "axios";
   import DOMPurify from "dompurify";
   import MarkdownIt from "markdown-it";
-  import { isRecording, startRecording, stopRecording } from "./AudioRec.js";
-import { Microphone } from "@element-plus/icons-vue";
+  import { Microphone } from "@element-plus/icons-vue";
+  import { apiUrl } from "./ServerConfig.js";
   const md = new MarkdownIt({
     html: false,
     linkify: true,
@@ -115,14 +115,47 @@ import { Microphone } from "@element-plus/icons-vue";
   const sessionID = useRoute().params.sessionID ?? null;
   const userPrompt = ref("");
 
-  const localhost = "https://a6ce-123-121-180-211.ngrok-free.app";
-  const port = "9834";
-  const apiUrl = localhost.includes("localhost") ? `${localhost}:${port}/rag` : `${localhost}/rag`;
-
   const isASRPopupVisible = ref(false);
 
+  const isRecording = ref(false); 
+  const audioFile = ref(null);
+  let mediaRecorder = null;
+  let audioChunks = [];
+
+  const startRecording = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.onstart = () => {
+            isRecording.value = true;
+            audioChunks = []; // Clear audio data
+        };
+
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            isRecording.value = false;
+            const audioBlob = new Blob(audioChunks, { type: "audio/mp3" });
+            audioFile.value = audioBlob;
+        };
+
+        mediaRecorder.start();
+    } catch (error) {
+        console.error("Error accessing microphone:", error);
+    }
+};
+
+const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+    }
+}
+
   function navigateHome() {
-    window.location.href = "/";
+    window.location.href = "/home";
   }
   
   function navigateToSession(sessionID) {
@@ -209,11 +242,9 @@ import { Microphone } from "@element-plus/icons-vue";
     }, 0);
   }
 
-  async function sendPrompt() {
-    const message = document.querySelector(".window-enter-textbox").value;
+  async function sendPrompt(message) {
     if (message) {
       messages.value.push({ from: "user", content: message, sessionID: sessionID });
-      document.querySelector(".window-enter-textbox").value = "";
       userPrompt.value = "";
       saveMessageData();
       scrollToBottom();
@@ -247,6 +278,12 @@ import { Microphone } from "@element-plus/icons-vue";
         console.error(error);
       }
     }
+  }
+
+  async function textfieldSendPrompt() {
+    const message = document.querySelector(".window-enter-textbox").value;
+    sendPrompt(message);
+    document.querySelector(".window-enter-textbox").value = "";
   }
 
   function MessagesforSession() {

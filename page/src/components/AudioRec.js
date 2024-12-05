@@ -6,16 +6,16 @@ const audioSrc = ref("");
 let mediaRecorder = null; // MediaRecorder instance
 let audioChunks = []; // store audio data
 
-const downloadAudio = () => {
-    if (audioFile.value) {
-        const link = document.createElement("a");
-        link.href = audioSrc.value;
-        link.download = "audio.mp3";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-}
+// const downloadAudio = () => {
+//     if (audioFile.value) {
+//         const link = document.createElement("a");
+//         link.href = audioSrc.value;
+//         link.download = "audio.mp3";
+//         document.body.appendChild(link);
+//         link.click();
+//         document.body.removeChild(link);
+//     }
+// }
 
 const startRecording = async () => {
     try {
@@ -28,17 +28,17 @@ const startRecording = async () => {
         };
 
         mediaRecorder.ondataavailable = (event) => {
-            audioChunks.push(event.data); // Store audio data
+            audioChunks.push(event.data);
         };
 
         mediaRecorder.onstop = () => {
             isRecording.value = false;
             const audioBlob = new Blob(audioChunks, { type: "audio/mp3" });
             audioFile.value = audioBlob;
-            audioSrc.value = URL.createObjectURL(audioBlob);  // Create a URL for the audio file
+            audioSrc.value = URL.createObjectURL(audioBlob); 
 
             // download the audio file
-            downloadAudio();
+            // downloadAudio();
         };
 
         mediaRecorder.start();
@@ -47,7 +47,6 @@ const startRecording = async () => {
     }
 };
 
-// Stop recording
 const stopRecording = () => {
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
