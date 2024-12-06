@@ -171,3 +171,4 @@ output_audio.wav
 node_modules/
 .vscode/
 database/
+nohup.out

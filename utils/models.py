@@ -1,5 +1,6 @@
 from typing import Any
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoTokenizer
+from vllm import LLM, SamplingParams
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, convert_to_openai_messages
 from langchain_core.outputs import ChatGeneration, ChatResult
@@ -9,11 +10,7 @@ class QwenModel(BaseChatModel):
     model: str
     def __init__(self, model: str):
         super().__init__(model=model)
-        self._model = AutoModelForCausalLM.from_pretrained(
-            self.model,
-            torch_dtype="auto",
-            device_map="auto"
-        )
+        self._model = LLM(model=model)
         self._tokenizer = AutoTokenizer.from_pretrained(self.model)
 
     def _generate(self, messages: list[BaseMessage], stop: list[str] | None = None, run_manager: CallbackManagerForLLMRun | None = None, **kwargs: Any) -> ChatResult:
@@ -23,15 +20,13 @@ class QwenModel(BaseChatModel):
             tokenize=False,
             add_generation_prompt=True
         )
-        model_inputs = self._tokenizer([text], return_tensors="pt").to(self._model.device)
-        generated_ids = self._model.generate(
-            **model_inputs,
-            max_new_tokens=512
+        outputs = self._model.generate(
+            [text],
+            sampling_params = SamplingParams(temperature=0.7, top_p=0.8, repetition_penalty=1.05, max_tokens=512)
         )
-        generated_ids = [
-            output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-        ]
-        response_text = self._tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        print(len(outputs))
+        print(len(outputs[0].outputs))
+        response_text = outputs[0].outputs[0].text
         response_message = AIMessage(
             content=response_text
         )
