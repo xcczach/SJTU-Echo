@@ -88,10 +88,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, nextTick } from "vue";
 import { useRoute } from 'vue-router';
 import axios from "axios";
-import DOMPurify from "dompurify";
 import MarkdownIt from "markdown-it";
 import { Microphone, VideoPlay, VideoPause } from "@element-plus/icons-vue";
 import { ragEndpoint, asrEndpoint, ttsEndpoint } from "./ServerConfig.js";
@@ -283,6 +282,19 @@ async function getTTSResult(content) {
   return audioUrl;
 }
 
+async function playLatestAudio(newMessage) {
+  await nextTick();
+  const currentSessionMessages = MessagesforSession();
+  const index = currentSessionMessages.length - 1;
+  if (newMessage.audioUrl) {
+    const audioElement = document.getElementById(`audio-${index}`);
+    if (audioElement) {
+      audioElement.play();
+      isPlaying.value[index] = true;
+    }
+  }
+}
+
 async function sendPrompt(message, audioUrl) {
   if (message) {
     messages.value.push({ from: "user", content: message, sessionID: sessionID, audioUrl: audioUrl === undefined ? null : audioUrl });
@@ -309,12 +321,16 @@ async function sendPrompt(message, audioUrl) {
             ? `\n\n[相关链接](${response_link})`
             : "");
 
-        const parsedContent = md.render(response_content);
-        const sanitizedContent = DOMPurify.sanitize(parsedContent);
-        const newMessage = { from: "bot", content: sanitizedContent, sessionID: sessionID, audioUrl: audioUrl };
+        let parsedContent = md.render(response_content);
+        parsedContent = parsedContent.replace(
+          /<a\s+href=/g,
+          '<a target="_blank" href='
+        );
+        const newMessage = { from: "bot", content: parsedContent, sessionID: sessionID, audioUrl: audioUrl };
         messages.value.push(newMessage);
         saveMessageData();
         scrollToBottom();
+        await playLatestAudio(newMessage);
       }
     } catch (error) {
       console.error(error);
