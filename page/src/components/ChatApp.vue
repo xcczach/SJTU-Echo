@@ -314,12 +314,10 @@ async function sendPrompt(message, audioUrl) {
       if (response.status === 200) {
         const response_body = response.data.messages[response.data.messages.length - 1].content;
         const audioUrl = await getTTSResult(response_body);
-        const response_link = response.data.messages[response.data.messages.length - 1].response_metadata.link;
+        const response_links = response.data.messages[response.data.messages.length - 1].response_metadata.links;
         const response_content =
           response_body +
-          (response_link
-            ? `\n\n[相关链接](${response_link})`
-            : "");
+          (response_links.length > 0 ? "\n\n相关链接：\n" + response_links.map((link) => `[${link}](${link})`).join("\n") : "");
 
         let parsedContent = md.render(response_content);
         parsedContent = parsedContent.replace(
