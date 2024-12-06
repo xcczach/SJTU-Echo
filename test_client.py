@@ -37,7 +37,7 @@ if __name__ == "__main__":
         print(f"Bad request：{response.status_code}")
 
     url = "http://localhost:9834/asr"
-    audio_data, sample_rate = sf.read("output/ref_audio.mp3")
+    audio_data, sample_rate = sf.read("test_output/ref_audio.mp3")
     data = {"sample_rate": sample_rate, "audio_data": audio_data.tolist()}
     start = timeit.default_timer()
     response = requests.post(url, json=data, stream=True)

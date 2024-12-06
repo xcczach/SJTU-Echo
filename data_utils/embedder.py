@@ -1,5 +1,5 @@
 import json
-from typing import Iterator
+from typing import Iterator, Literal
 
 from langchain_core.document_loaders import BaseLoader
 from langchain_core.documents import Document
@@ -77,8 +77,7 @@ def embedding_strategy_hypothetical_question(docs: list[Document], embeddings_mo
     print("Embedding hypothetical questions")
     Chroma.from_documents(documents=hypothetical_questions, embedding=embeddings_model, persist_directory=result_path)
 
-def save_vectorstore_from_huggingface(content_json_path: str, result_path: str, embedding_model_name: str, embedding_strategy: Callable[[list[Document], Embeddings, str], None]=
-                                      lambda docs, embeddings_model, result_path: embedding_strategy_hypothetical_question(docs, embeddings_model, result_path)):
+def save_vectorstore_from_huggingface(content_json_path: str, result_path: str, embedding_model_name: str, embedding_strategy: Literal["hypothetical_question"]="hypothetical_question"):
     """
     Create vectorstore from content_json_path (created from extract_content) with embedding_model_name; save the results result_path
     """
@@ -89,4 +88,9 @@ def save_vectorstore_from_huggingface(content_json_path: str, result_path: str, 
     loader = HTMLJSONLoader(content_json_path)
     docs = loader.load()
     embeddings_model = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={"trust_remote_code": True})
-    embedding_strategy(docs, embeddings_model, result_path)
+
+    if embedding_strategy == "hypothetical_question":
+        embedding_func = embedding_strategy_hypothetical_question
+    else:
+        raise ValueError(f"Unknown embedding strategy: {embedding_strategy}")
+    embedding_func(docs, embeddings_model, result_path)

@@ -5,6 +5,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_core.language_models import BaseChatModel
 from langchain_core.vectorstores import VectorStore
 from langchain import hub
+from typing import Literal
 
 def get_hf_vectorstore(source_dir: str):
     with open(f"{source_dir}/embedding_metadata.json", "r") as f:
@@ -35,7 +36,7 @@ def _get_answer_strategy_hypothetical_question(messages: list[BaseMessage], chat
     new_messages = messages + input_messages
     return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"link": retrieved_docs[0].metadata.get("url", "未提供")})
 
-def inference(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore, strategy: str="hypothetical_question"):
+def inference(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore, strategy: Literal["hypothetical_question"]="hypothetical_question"):
     if strategy == "hypothetical_question":
         return _get_answer_strategy_hypothetical_question(messages, chat_model, vectorstore)
     else:

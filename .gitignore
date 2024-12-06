@@ -162,15 +162,12 @@ cython_debug/
 #.idea/
 
 # User defined
-output/*
-!output/sample_content.json
-!output/sample_embeddings
-!output/eval_results/
+test_output/sample_embeddings/
 misc/rag_test/data/chroma/
 misc/rag_test/data/hypothetical_chroma/
-ckpts/*
+ckpts/
 !ckpts/download.py
 output_audio.wav
-!output/ref_audio.mp3
 node_modules/
 .vscode/
+database/

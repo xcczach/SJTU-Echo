@@ -123,7 +123,7 @@ def _get_answer_strategy_hypothetical_question(messages: list[BaseMessage], chat
 def _strategy_hypothetical_question(question: str):
     global _hypo_vectorstore, _hypo_chat_model, _hypo_question_prompt
     if _hypo_vectorstore is None:
-        _hypo_vectorstore = get_hf_vectorstore("output/sample_embeddings")
+        _hypo_vectorstore = get_hf_vectorstore("test_output/sample_embeddings")
     if _hypo_chat_model is None:
         _hypo_chat_model = QwenModel(model="Qwen/Qwen2.5-1.5B-Instruct")
     if _hypo_question_prompt is None:

@@ -58,12 +58,17 @@ python data_scrapper.py --extract-content
 
 Embed content from a json file (created by `--extract-content`):
 ```bash
-python embedder.py --content-json-path output/sample_content.json --output-dir output/sample_embeddings
+python embedder.py --content-json-path test_output/sample_content.json --output-dir test_output/sample_embeddings
 ```
 
 ### RAG Evaluation
 
-Evaluate the RAG model:
+First create sample embeddings if not exist:
+```bash
+python embedder.py --content-json-path test_output/sample_content.json --output-dir test_output/sample_embeddings
+```
+
+Then evaluate the RAG model:
 ```bash
 export OPENAI_API_KEY=<your_openai_api_key>
 export OPENAI_API_BASE=<your_openai_api_base> # if any
