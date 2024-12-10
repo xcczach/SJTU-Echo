@@ -1,4 +1,4 @@
-const targetHost = "https://a6ce-123-121-180-211.ngrok-free.app";
+const targetHost = "https://cf9a-36-140-113-198.ngrok-free.app";
 const port = "9834";
 const apiUrl = targetHost.includes("localhost") ? `http://${targetHost}:${port}` : targetHost;
 const ragEndpoint = `${apiUrl}/rag`;
