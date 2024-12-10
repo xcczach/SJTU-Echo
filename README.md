@@ -63,6 +63,10 @@ python embedder.py --content-json-path test_output/sample_content.json --output-
 
 ### RAG Evaluation
 
+*Git LFS needed!*
+
+`git lfs pull` to get the `sample_content.json` file.
+
 First create sample embeddings if not exist:
 ```bash
 python embedder.py --content-json-path test_output/sample_content.json --output-dir test_output/sample_embeddings
@@ -78,6 +82,10 @@ python eval_rag.py --strategy <strategy>
 You can start with strategy `nothing` for test.
 
 ### Start server
+
+*Git LFS needed!*
+
+`git lfs pull` to get the `sample_content.json` file.
 
 First create sample embeddings if not exist:
 ```bash
@@ -98,6 +106,10 @@ python test_rag.py
 ```
 
 ### Sample API POST
+
+*Git LFS needed!*
+
+`git lfs pull` to get the `sample_content.json` file.
 
 First create sample embeddings if not exist:
 ```bash
