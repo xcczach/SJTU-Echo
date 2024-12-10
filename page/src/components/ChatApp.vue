@@ -62,8 +62,10 @@
               <el-icon v-else>
                 <VideoPause />
               </el-icon>
-              <!-- {{ isPlaying[index] ? "Pause" : "Play" }} -->
             </button>
+          </div>
+          <div v-if="message.audioUrl===undefined && message.from=='bot'">
+            <i>语音生成中……</i>
           </div>
         </div>
 
@@ -112,6 +114,23 @@ let audioChunks = [];
 
 const isPlaying = ref([]);
 
+const disableAllButtons = () => {
+  const buttons = document.querySelectorAll("button");
+  console.log(buttons.length);
+      buttons.forEach((element) => {
+        if (!element.classList.contains("inline-play-button")) {
+      element.disabled = true;
+    }
+      });
+}
+
+const enableAllButtons = () => {
+  const buttons = document.querySelectorAll("button");
+  buttons.forEach((element) => {
+    element.disabled = false;
+  });
+}
+
 const sendAudioToASR = async (sampleRate, audioData, audioUrl) => {
   try {
     const response = await fetch(asrEndpoint, {
@@ -146,6 +165,15 @@ function playAudio(index) {
   if (audioElement.paused) {
     audioElement.play();
     isPlaying.value[index] = true;
+    for (let i = 0; i < isPlaying.value.length; i++) {
+      if (i !== index) {
+        const otherAudioElement = document.getElementById(`audio-${i}`);
+        if (otherAudioElement) {
+          otherAudioElement.pause();
+          isPlaying.value[i] = false;
+        }
+      }
+    }
   } else {
     audioElement.pause();
     isPlaying.value[index] = false;
@@ -175,6 +203,7 @@ const startRecording = async () => {
       const audioData = Array.from(audioBuffer.getChannelData(0));
       const sampleRate = audioBuffer.sampleRate;
       const audioUrl = URL.createObjectURL(audioBlob);
+      disableAllButtons();
       sendAudioToASR(sampleRate, audioData, audioUrl);
     };
 
@@ -287,11 +316,7 @@ async function playLatestAudio(newMessage) {
   const currentSessionMessages = MessagesforSession();
   const index = currentSessionMessages.length - 1;
   if (newMessage.audioUrl) {
-    const audioElement = document.getElementById(`audio-${index}`);
-    if (audioElement) {
-      audioElement.play();
-      isPlaying.value[index] = true;
-    }
+    playAudio(index);
   }
 }
 
@@ -323,13 +348,15 @@ async function sendPrompt(message, audioUrl) {
           /<a\s+href=/g,
           '<a target="_blank" href='
         );
-        const newMessage = { from: "bot", content: parsedContent, sessionID: sessionID, audioUrl: null };
+        const newMessage = { from: "bot", content: parsedContent, sessionID: sessionID };
+        const currentMessageIndex = messages.value.length;
         messages.value.push(newMessage);
         saveMessageData();
         scrollToBottom();
+        enableAllButtons();
         const audioUrl = await getTTSResult(response_body);
-        messages.value[messages.value.length - 1].audioUrl = audioUrl;
-        await playLatestAudio(messages.value[messages.value.length - 1]);
+        messages.value[currentMessageIndex].audioUrl = audioUrl;
+        await playLatestAudio(messages.value[currentMessageIndex]);
       }
     } catch (error) {
       console.error(error);
@@ -339,6 +366,7 @@ async function sendPrompt(message, audioUrl) {
 
 async function textfieldSendPrompt() {
   const message = document.querySelector(".window-enter-textbox").value;
+  disableAllButtons();
   sendPrompt(message);
   document.querySelector(".window-enter-textbox").value = "";
 }
@@ -499,6 +527,16 @@ onMounted(() => {
   border: none;
 }
 
+.sidebar-create-button:disabled {
+  background-color: var(--neutral-dark);
+  cursor: not-allowed;
+}
+
+.sidebar-create-button:disabled:hover {
+  background-color: var(--neutral-dark);
+  cursor: not-allowed;
+}
+
 .sidebar-sessions {
   display: flex;
   flex-direction: column;
@@ -538,6 +576,14 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.siderbar-session-card-enter-button:disabled {
+  cursor: not-allowed;
+}
+
+.siderbar-session-card-enter-button:disabled:hover {
+  cursor: not-allowed;
+}
+
 .siderbar-session-card-options-button {
   background: none;
   border: none;
@@ -552,6 +598,14 @@ onMounted(() => {
 
 .siderbar-session-card-options-button:hover {
   background: var(--accent-color);
+}
+
+.siderbar-session-card-options-button:disabled {
+  cursor: not-allowed;
+}
+
+.siderbar-session-card-options-button:disabled:hover {
+  cursor: not-allowed;
 }
 
 .sidebar-dropdown-menu {
@@ -626,6 +680,14 @@ onMounted(() => {
   border-radius: 15px;
   cursor: pointer;
   transition: background-color 0.3s;
+}
+
+.window-enter-voice.not-recording:disabled {
+  background-color: var(--neutral-dark);
+}
+
+.window-enter-voice.not-recording:disabled:hover {
+  background-color: var(--neutral-dark);
 }
 
 .window-enter-voice.recording {
