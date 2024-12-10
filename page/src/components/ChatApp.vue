@@ -313,7 +313,6 @@ async function sendPrompt(message, audioUrl) {
       });
       if (response.status === 200) {
         const response_body = response.data.messages[response.data.messages.length - 1].content;
-        const audioUrl = await getTTSResult(response_body);
         const response_links = response.data.messages[response.data.messages.length - 1].response_metadata.links;
         const response_content =
           response_body +
@@ -324,11 +323,13 @@ async function sendPrompt(message, audioUrl) {
           /<a\s+href=/g,
           '<a target="_blank" href='
         );
-        const newMessage = { from: "bot", content: parsedContent, sessionID: sessionID, audioUrl: audioUrl };
+        const newMessage = { from: "bot", content: parsedContent, sessionID: sessionID, audioUrl: null };
         messages.value.push(newMessage);
         saveMessageData();
         scrollToBottom();
-        await playLatestAudio(newMessage);
+        const audioUrl = await getTTSResult(response_body);
+        messages.value[messages.value.length - 1].audioUrl = audioUrl;
+        await playLatestAudio(messages.value[messages.value.length - 1]);
       }
     } catch (error) {
       console.error(error);
