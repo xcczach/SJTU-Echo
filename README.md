@@ -33,6 +33,12 @@ export HF_ENDPOINT="https://hf-mirror.com" # Optional, necessary if you are in C
 python ckpts/download.py
 ```
 
+(Optional) Change the locations to download model checkpoints:
+```bash
+export HF_HOME="<target_dir>"
+export MODELSCOPE_CACHE="<target_dir>"
+```
+
 ## Usage
 
 ### Data scrapping
@@ -80,6 +86,8 @@ python eval_rag.py --strategy <strategy>
 ```
 
 You can start with strategy `nothing` for test.
+
+Add `--small_questions` to use the smaller question set.
 
 ### Start server
 
