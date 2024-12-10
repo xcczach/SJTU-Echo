@@ -19,7 +19,7 @@ tts_model = None
 tts_config = None
 asr_model = None
 
-def launch_server(chat_model_name: str, hf_vectorstore_source_dir: str, port: int):
+def launch_server(chat_model_name: str, hf_vectorstore_source_dir: str, port: int, llm_gpu_memory_utilization: float = 0.6):
     @contextmanager
     def timer_context(task_name: str = ""):
         start = timer()
@@ -30,7 +30,7 @@ def launch_server(chat_model_name: str, hf_vectorstore_source_dir: str, port: in
     setproctitle.setproctitle('SJTU-Echo-Server')
 
     if chat_model_name.startswith("Qwen/"):
-        chat_model = QwenModel(model=chat_model_name)
+        chat_model = QwenModel(model=chat_model_name,gpu_memory_utilization=llm_gpu_memory_utilization)
     else:
         raise ValueError(f"Unknown chat model: {chat_model_name}")
     vectorstore = get_hf_vectorstore(hf_vectorstore_source_dir)

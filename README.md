@@ -105,6 +105,8 @@ Then start the default server:
 python server.py
 ```
 
+If you meet GPU Out of Memory error, you can try to lower the `--llm-gpu-memory-utilization` parameter.
+
 ## Examples
 
 ### RAG
