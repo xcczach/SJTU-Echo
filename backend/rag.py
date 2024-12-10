@@ -34,7 +34,11 @@ def _get_answer_strategy_hypothetical_question(messages: list[BaseMessage], chat
         }
     ).to_messages()
     new_messages = messages + input_messages
-    return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"link": retrieved_docs[0].metadata.get("url", "未提供")})
+    # return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"links": retrieved_docs[0].metadata.get("url", "")})
+    links = [retrieved_doc.metadata.get("url", "") for retrieved_doc in retrieved_docs]
+    links = [link for link in links if link]
+    return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"links": links})
+
 
 def inference(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore, strategy: Literal["hypothetical_question"]="hypothetical_question"):
     if strategy == "hypothetical_question":
