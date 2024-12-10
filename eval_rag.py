@@ -4,10 +4,10 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--strategy", type=str, default="nothing")
-    parser.add_argument("--small_questions", action="store_true")
+    parser.add_argument("--small-questions", action="store_true")
     args = parser.parse_args()
     
-    print(f" RAG strategies: {RAGStrategy.__args__}")
+    print(f" RAG strategies: {RAGStrategy.__args__ + ('nothing',)}")
     print(f" Evaluating strategy: {args.strategy}")
     if args.small_questions:
         print(" Using small questions set")
@@ -16,7 +16,7 @@ if __name__ == "__main__":
         questions_file = "sample_questions.txt"
     eval_result = eval_rag_strategy(args.strategy, questions_file)
     eval_statistics = eval_result["mean"]
-    result_file_name = f"test_output/eval_results/eval_results_{args.strategy}{"_small_questions" if args.small_questions else ""}.out"
+    result_file_name = f"test_output/eval_results/eval_results_{args.strategy}{'_small_questions' if args.small_questions else ''}.out"
     with open(result_file_name, "w") as f:
         f.write(f"Results for {args.strategy}:\n")
         for key, value in eval_statistics.items():

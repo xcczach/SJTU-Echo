@@ -46,7 +46,7 @@ def launch_server(chat_model_name: str, hf_vectorstore_source_dir: str, port: in
         messages_json = await request.json()
         messages = json_to_messages(messages_json)
         with timer_context("RAG inference"):
-            new_message = rag_inference(messages, chat_model, vectorstore)
+            new_message, _ = rag_inference(messages, chat_model, vectorstore)
         return messages_to_json([new_message])
     @app.post("/tts")
     async def tts(request: Request):

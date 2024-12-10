@@ -87,7 +87,7 @@ python eval_rag.py --strategy <strategy>
 
 You can start with strategy `nothing` for test.
 
-Add `--small_questions` to use the smaller question set.
+Add `--small-questions` to use the smaller question set.
 
 ### Start server
 

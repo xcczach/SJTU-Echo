@@ -26,7 +26,8 @@ def _get_answer_strategy_hypothetical_question(messages: list[BaseMessage], chat
     hypothetical_answer = generate_hypothetical_answer(question, chat_model)
     hypothetical_embedding = embeddings_model.embed_query(hypothetical_answer)
     retrieved_docs = vectorstore.similarity_search_by_vector(hypothetical_embedding, k=6)
-    combined_context = "\n\n".join([doc.metadata["original_doc"] for doc in retrieved_docs])
+    contexts = [doc.metadata["original_doc"] for doc in retrieved_docs]
+    combined_context = "\n\n".join(contexts)
     input_messages = _strategy_hypothetical_question_prompt.invoke(
         {
             "context": combined_context, 
@@ -37,12 +38,44 @@ def _get_answer_strategy_hypothetical_question(messages: list[BaseMessage], chat
     # return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"links": retrieved_docs[0].metadata.get("url", "")})
     links = [retrieved_doc.metadata.get("url", "") for retrieved_doc in retrieved_docs]
     links = [link for link in links if link]
-    return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"links": links})
+    return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"links": links}), contexts
 
+def _get_answer_strategy_hypothetical_question_v2(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore):
+    def generate_hypothetical_answer(question: str, chat_model) -> str:
+        prompt_text = f"根据以下问题生成一个简洁的假设性回答，以便用于相似性检索优化：\n\n问题：{question}\n\n假设性回答："
+        input_messages = [HumanMessage(content=prompt_text)]
+        response = chat_model.invoke(input=input_messages).content
+        return response.strip()
+    question = messages[-1].content
+    embeddings_model = vectorstore.embeddings
+    hypothetical_answer = generate_hypothetical_answer(question, chat_model)
+    hypothetical_embedding = embeddings_model.embed_query(hypothetical_answer)
+    retrieved_docs = vectorstore.similarity_search_by_vector(hypothetical_embedding, k=6)
+    contexts = [doc.metadata["original_doc"] for doc in retrieved_docs]
+    combined_context = "\n\n".join(contexts)
+    input_messages = _strategy_hypothetical_question_prompt.invoke(
+        {
+            "context": combined_context, 
+            "question": question
+        }
+    ).to_messages()
+    new_messages = messages + input_messages
+    # return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"links": retrieved_docs[0].metadata.get("url", "")})
+    links = [retrieved_doc.metadata.get("url", "") for retrieved_doc in retrieved_docs]
+    links = [link for link in links if link]
+    return AIMessage(content=chat_model.invoke(input=new_messages).content, response_metadata={"links": links}), contexts
 
-def inference(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore, strategy: Literal["hypothetical_question"]="hypothetical_question"):
+RAGStrategy = Literal["hypothetical_question", "hypothetical_question_v2"]
+
+def inference(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore, 
+              strategy: RAGStrategy="hypothetical_question_v2"):
+    """
+    returns (new_message, list[context])
+    """
     if strategy == "hypothetical_question":
         return _get_answer_strategy_hypothetical_question(messages, chat_model, vectorstore)
+    elif strategy == "hypothetical_question_v2":
+        return _get_answer_strategy_hypothetical_question_v2(messages, chat_model, vectorstore)
     else:
         raise ValueError(f"Unknown strategy: {strategy}")
     
