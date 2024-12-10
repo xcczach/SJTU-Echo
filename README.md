@@ -77,6 +77,18 @@ python eval_rag.py --strategy <strategy>
 
 You can start with strategy `nothing` for test.
 
+### Start server
+
+First create sample embeddings if not exist:
+```bash
+python embedder.py --content-json-path test_output/sample_content.json --output-dir test_output/sample_embeddings
+```
+
+Then start the default server:
+```bash
+python server.py
+```
+
 ## Examples
 
 ### RAG
@@ -87,7 +99,12 @@ python test_rag.py
 
 ### Sample API POST
 
-First start the default server:
+First create sample embeddings if not exist:
+```bash
+python embedder.py --content-json-path test_output/sample_content.json --output-dir test_output/sample_embeddings
+```
+
+Then start the default server:
 ```bash
 python server.py
 ```
