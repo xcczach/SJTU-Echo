@@ -52,5 +52,5 @@ def launch_server(chat_model_name: str, hf_vectorstore_source_dir: str, port: in
         result = asr_inference(audio_data, sample_rate, asr_model)
         return Response(content=result, media_type="text/plain")
 
-    host = "localhost"
+    host = "127.0.0.1"
     uvicorn.run(app, host=host, port=port, log_level="info")

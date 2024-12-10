@@ -70,9 +70,9 @@ def _eval_rag_results(rag_results: list[RAGResult]):
     mean_df = df.mean(numeric_only=True)
     return { "df":df,"mean":mean_df[statistics].to_dict() }
 
-def _get_default_questions():
+def _get_questions(file_name: str):
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    questions_file = os.path.join(current_dir, "sample_questions.txt")
+    questions_file = os.path.join(current_dir, file_name)
     with open(questions_file, "r") as f:
         questions = f.readlines()
     questions = [question.strip() for question in questions]
@@ -80,11 +80,12 @@ def _get_default_questions():
 
 RAGStrategy = Literal["nothing", "hypothetical_question"]
 
-def eval_rag_strategy(strategy: Callable[[str], tuple[str,list[str]]] | RAGStrategy, questions: list[str]=_get_default_questions()):
+def eval_rag_strategy(strategy: Callable[[str], tuple[str,list[str]]] | RAGStrategy, questions_file: str="sample_questions.txt"):
     if isinstance(strategy, str):
         strategy = globals()["_strategy_"+strategy]
     
     rag_results = []
+    questions = _get_questions(questions_file)
     for question in tqdm(questions, desc="RAG generation"):
         response, retrieved_context = strategy(question)
         rag_results.append(RAGResult(question=question, retrieved_context=retrieved_context, response=response))

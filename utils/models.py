@@ -8,9 +8,14 @@ from langchain_core.callbacks import CallbackManagerForLLMRun
 
 class QwenModel(BaseChatModel):
     model: str
-    def __init__(self, model: str):
+    def __init__(self, model: str, gpu_memory_utilization: float = 0.6):
         super().__init__(model=model)
-        self._model = LLM(model=model)
+        quantization = None
+        if "GPTQ" in model:
+            quantization = "gptq"
+        elif "AWQ" in model:
+            quantization = "awq"
+        self._model = LLM(model=model, quantization=quantization, gpu_memory_utilization=gpu_memory_utilization)
         self._tokenizer = AutoTokenizer.from_pretrained(self.model)
 
     def _generate(self, messages: list[BaseMessage], stop: list[str] | None = None, run_manager: CallbackManagerForLLMRun | None = None, **kwargs: Any) -> ChatResult:

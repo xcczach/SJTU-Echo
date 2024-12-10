@@ -33,6 +33,12 @@ export HF_ENDPOINT="https://hf-mirror.com" # Optional, necessary if you are in C
 python ckpts/download.py
 ```
 
+(Optional) Change the locations to download model checkpoints:
+```bash
+export HF_HOME="<target_dir>"
+export MODELSCOPE_CACHE="<target_dir>"
+```
+
 ## Usage
 
 ### Data scrapping
@@ -63,6 +69,10 @@ python embedder.py --content-json-path test_output/sample_content.json --output-
 
 ### RAG Evaluation
 
+*Git LFS needed!*
+
+`git lfs pull` to get the `sample_content.json` file.
+
 First create sample embeddings if not exist:
 ```bash
 python embedder.py --content-json-path test_output/sample_content.json --output-dir test_output/sample_embeddings
@@ -77,6 +87,24 @@ python eval_rag.py --strategy <strategy>
 
 You can start with strategy `nothing` for test.
 
+Add `--small_questions` to use the smaller question set.
+
+### Start server
+
+*Git LFS needed!*
+
+`git lfs pull` to get the `sample_content.json` file.
+
+First create sample embeddings if not exist:
+```bash
+python embedder.py --content-json-path test_output/sample_content.json --output-dir test_output/sample_embeddings
+```
+
+Then start the default server:
+```bash
+python server.py
+```
+
 ## Examples
 
 ### RAG
@@ -87,7 +115,16 @@ python test_rag.py
 
 ### Sample API POST
 
-First start the default server:
+*Git LFS needed!*
+
+`git lfs pull` to get the `sample_content.json` file.
+
+First create sample embeddings if not exist:
+```bash
+python embedder.py --content-json-path test_output/sample_content.json --output-dir test_output/sample_embeddings
+```
+
+Then start the default server:
 ```bash
 python server.py
 ```

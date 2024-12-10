@@ -27,3 +27,4 @@ modelscope==1.20.1
 ragas==0.2.6
 vllm==0.6.4.post1
 nvidia-ml-py==12.560.30
+pydub==0.25.1
