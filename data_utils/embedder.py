@@ -8,7 +8,7 @@ from langchain_chroma import Chroma
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models import BaseChatModel
 from bs4 import BeautifulSoup
-from typing import Callable
+from typing import Literal
 from langchain_core.language_models import BaseChatModel
 from utils.models import QwenModel
 import os
@@ -75,6 +75,14 @@ def _load_cached_documents(cache_dir: str) -> list[Document]:
             docs.append(doc)
     return docs
 
+def _embedding_strategy_raw(docs: list[Document], embeddings_model: Embeddings, result_path: str):
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=500, chunk_overlap=100, add_start_index=True
+        )
+    all_splits = text_splitter.split_documents(docs)
+    Chroma.from_documents(documents=all_splits, embedding=embeddings_model, persist_directory=result_path)
+    
 def _embedding_strategy_hypothetical_question(docs: list[Document], embeddings_model: Embeddings, result_path: str,chat_model_name: str="Qwen/Qwen2.5-1.5B-Instruct"):
     def generate_hypothetical_question(doc: Document, llm):
         from langchain_core.prompts import PromptTemplate
@@ -114,7 +122,8 @@ def _embedding_strategy_hypothetical_question(docs: list[Document], embeddings_m
     print("Embedding hypothetical questions")
     Chroma.from_documents(documents=hypothetical_questions, embedding=embeddings_model, persist_directory=result_path)
 
-def save_vectorstore_from_huggingface(content_json_path: str, result_path: str, embedding_model_name: str, embedding_strategy: Literal["hypothetical_question"]="hypothetical_question"):
+EmbeddingStrategy = Literal["hypothetical_question", "raw"]
+def save_vectorstore_from_huggingface(content_json_path: str, result_path: str, embedding_model_name: str, embedding_strategy: EmbeddingStrategy="hypothetical_question"):
     """
     Create vectorstore from content_json_path (created from extract_content) with embedding_model_name; save the results result_path
     """
@@ -128,6 +137,8 @@ def save_vectorstore_from_huggingface(content_json_path: str, result_path: str, 
 
     if embedding_strategy == "hypothetical_question":
         embedding_func = _embedding_strategy_hypothetical_question
+    elif embedding_strategy == "raw":
+        embedding_func = _embedding_strategy_raw
     else:
         raise ValueError(f"Unknown embedding strategy: {embedding_strategy}")
     embedding_func(docs, embeddings_model, result_path)

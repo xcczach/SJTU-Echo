@@ -67,6 +67,10 @@ Embed content from a json file (created by `--extract-content`):
 python embedder.py --content-json-path test_output/sample_content.json --output-dir test_output/sample_embeddings
 ```
 
+Add `--strategy` to customize the embedding strategy. Defaults to `hypothetical_question`. Run and see strategy options.
+
+Add `--embedding-model` to customize the Huggingface embedding model. Defaults to `Alibaba-NLP/gte-Qwen2-1.5B-instruct`.
+
 ### RAG Evaluation
 
 *Git LFS needed!*
@@ -88,6 +92,8 @@ python eval_rag.py --strategy <strategy>
 You can start with strategy `nothing` for test.
 
 Add `--small-questions` to use the smaller question set.
+
+Add `--vectorstore-path` to customize the vector store path. Defaults to `test_output/sample_embeddings`.
 
 ### Start server
 
