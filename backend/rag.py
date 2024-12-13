@@ -6,8 +6,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.vectorstores import VectorStore
 from langchain import hub
 from typing import Literal
-from langchain.retrievers.multi_query import MultiQueryRetriever
-from langchain_core.output_parsers import BaseOutputParser, StrOutputParser
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
 
@@ -64,7 +63,19 @@ def _rag_strategy_raw(messages: list[BaseMessage], chat_model: BaseChatModel, ve
     links = _retrieve_links_from_docs(retrieved_docs)
     return AIMessage(content=chat_model.invoke(input=messages).content, response_metadata={"links": links}), contexts
 
-RAGStrategy = Literal["hypothetical_question", "raw"]
+def _rag_strategy_hypothetical_question_with_raw(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore):
+    question = _get_question(messages)
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
+    chain = _create_hypo_answer_chain(chat_model) | retriever
+    retrieved_docs = chain.invoke({"question": question})
+
+    contexts = _get_contexts_raw(retrieved_docs)
+    combined_context = "\n\n".join(contexts)
+    _enhance_latest_message(messages, combined_context)
+    links = _retrieve_links_from_docs(retrieved_docs)
+    return AIMessage(content=chat_model.invoke(input=messages).content, response_metadata={"links": links}), contexts
+
+RAGStrategy = Literal["hypothetical_question", "raw", "hypothetical_question_with_raw"]
 
 def inference(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstore: VectorStore, 
               strategy: RAGStrategy="hypothetical_question"):
@@ -75,6 +86,8 @@ def inference(messages: list[BaseMessage], chat_model: BaseChatModel, vectorstor
         return _rag_strategy_hypothetical_question(messages, chat_model, vectorstore)
     elif strategy == "raw":
         return _rag_strategy_raw(messages, chat_model, vectorstore)
+    elif strategy == "hypothetical_question_with_raw":
+        return _rag_strategy_hypothetical_question_with_raw(messages, chat_model, vectorstore)
     else:
         raise ValueError(f"Unknown strategy: {strategy}")
     
