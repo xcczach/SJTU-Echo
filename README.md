@@ -128,6 +128,8 @@ python server.py
 
 If you meet GPU Out of Memory error, you can try to lower the `--llm-gpu-memory-utilization` parameter.
 
+You can select the embeddings used with `--vectorstore-source-dir`, and you need to use the strategy for the embeddings you selected with `--rag-strategy`.
+
 ## Examples
 
 ### RAG

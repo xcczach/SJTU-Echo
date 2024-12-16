@@ -81,6 +81,7 @@ def _split_text_multilang(text, threshold, lang='zh'):
     
     # remove duplicate segments
     segments = list(dict.fromkeys(segments))
+    print(segments)
     return segments
 
 _lang_segment_threshold = {

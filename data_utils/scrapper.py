@@ -636,6 +636,16 @@ def _save_contents(contents: list[HTMLContent], path: str):
     with open(path, "w", encoding="utf-8") as f:
         json.dump([content.to_dict() for content in contents], f, ensure_ascii=False)
 
+def _remove_html_tags(text: str) -> str:
+    return re.sub(r"<[^>]*>", "", text)
+def _merge_spaces(text: str) -> str:
+    return re.sub(r"\s+", " ", text)
+
+def _clean_html_contents(contents: list[HTMLContent]):
+    for content in contents:
+        content.content["body"] = _remove_html_tags(content.content["body"])
+        content.content["body"] = _merge_spaces(content.content["body"])
+
 def extract_content(urls: list[str], result_path: str):
     """
     Extract the content from each url in urls; save the results to result_path.
@@ -663,4 +673,5 @@ def extract_content(urls: list[str], result_path: str):
         return static_results + dynamic_results
 
     results = asyncio.run(extract_content_async(urls))
+    _clean_html_contents(results)
     _save_contents(results, result_path)
