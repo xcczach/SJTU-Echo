@@ -65,6 +65,16 @@ Extract content from a list of websites:
 python data_scrapper.py --extract-content
 ```
 
+Do `--extract-sub-urls` and `--extract-content` together:
+```bash
+python data_scrapper.py --extract-site
+```
+
+Options that can be specified: `--target-url`, `--output-dir`, `--depth`, `--urls-file-path`, `--json-path`.
+If not specified, necessary parameters will be prompted for interactively.
+
+Add `--debug` to print debug information.
+
 ### Embedding
 
 Embed content from a json file (created by `--extract-content`):

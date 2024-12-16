@@ -19,6 +19,15 @@ import os
 import sys
 from selenium.webdriver.chrome.service import Service
 
+global _debug
+_debug = False
+def debug(flag: bool):
+    global _debug
+    _debug = flag
+
+def debug_print(*args, **kwargs):
+    if _debug:
+        print(*args, **kwargs)
 
 def _get_driver():
     options = ChromeOptions()
@@ -376,14 +385,14 @@ def _get_time_now():
 
 async def _fetch_content_static_async(url: str, session: aiohttp.ClientSession):
     if _is_file_url(url):
-        print(f"_fetch_content_static_async: Skipping file URL: {url}")
+        debug_print(f"_fetch_content_static_async: Skipping file URL: {url}")
         return ""
     async with session.get(url) as response:
         content_type = response.headers.get("Content-Type", "")
         if "application/json" in content_type or "text/html" in content_type:
             return await response.text()
         else:
-            print(
+            debug_print(
                 f"_fetch_content_static_async: Unsupported content type: {content_type}"
             )
             return ""
@@ -391,7 +400,7 @@ async def _fetch_content_static_async(url: str, session: aiohttp.ClientSession):
 
 def _fetch_content_dynamic(url: str, max_wait_time: float = 10.0):
     if _is_file_url(url):
-        print(f"_fetch_content_dynamic: Skipping file URL: {url}")
+        debug_print(f"_fetch_content_dynamic: Skipping file URL: {url}")
         return ""
     driver = _get_driver()
     driver.get(url)
@@ -415,7 +424,7 @@ def _readability_process_content(content: str):
             "body": doc.summary(),
         }
     except Exception as e:
-        print(f"_readability_process_content: {e}")
+        debug_print(f"_readability_process_content: {e}")
         doc_content = {"title": "", "body": ""}
     return doc_content
 
@@ -480,7 +489,7 @@ def _count_links(links_dict: StrSetDict) -> int:
 def _save_links(links_dict: StrSetDict, depth: int, path: str):
     with open(path, "w") as f:
         json.dump(_wrap_links_and_depth(links_dict, depth), f)
-    print(f"{_count_links(links_dict)} links saved to {path}")
+    debug_print(f"{_count_links(links_dict)} links saved to {path}")
 
 
 # Remove circular references and duplicates; normalize urls
