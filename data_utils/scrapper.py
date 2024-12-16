@@ -243,7 +243,6 @@ async def _extract_target_url_from_dynamic_element_async(
         if _urls_are_equal(result, base_url):
             result = null_result
         _close_driver(driver)
-        print(f"Extracted target url: {result} for base url: {base_url}")
         return result
 
 
