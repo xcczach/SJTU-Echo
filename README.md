@@ -43,7 +43,12 @@ export MODELSCOPE_CACHE="<target_dir>"
 
 ### Data scrapping
 
-Currently only support running on windows.
+If you are using Linux, you can install the Chrome & Chrome driver for Selenium with:
+```bash
+bash driver_install.sh
+```
+
+On Windows, you can search how to install Chrome and Chrome driver for Selenium.
 
 Extract links from a certain website recursively:
 ```bash

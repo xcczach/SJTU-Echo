@@ -172,3 +172,4 @@ node_modules/
 .vscode/
 database/
 nohup.out
+chrome*

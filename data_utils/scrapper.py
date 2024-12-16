@@ -1,5 +1,5 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
@@ -17,24 +17,25 @@ from datetime import datetime, timezone
 import json
 import os
 import sys
-from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.chrome.service import Service
 
 
 def _get_driver():
-    options = Options()
+    options = ChromeOptions()
     options.add_argument("--headless")
     prefs = {
-        "download.default_directory": "",
-        "download.prompt_for_download": False,
-        "download_restrictions": 3,
-        "profile.default_content_setting_values.automatic_downloads": 2,  # 阻止自动下载
-    }
+            "download.default_directory": "",
+            "download.prompt_for_download": False,
+            "download_restrictions": 3,
+            "profile.default_content_setting_values.automatic_downloads": 2,
+        }
     options.add_experimental_option("prefs", prefs)
     if sys.platform == "win32":
         driver = webdriver.Chrome(options=options)
     elif sys.platform == "linux":
-        service = Service(executable_path="/usr/local/bin/geckodriver")
-        driver = webdriver.Firefox(service=service)
+        options.add_argument("--no-sandbox")
+        service = Service()
+        driver = webdriver.Chrome(options=options, service=service)
     else:
         raise Exception("Unsupported platform")
     return driver
@@ -242,6 +243,7 @@ async def _extract_target_url_from_dynamic_element_async(
         if _urls_are_equal(result, base_url):
             result = null_result
         _close_driver(driver)
+        print(f"Extracted target url: {result} for base url: {base_url}")
         return result
 
 
@@ -618,15 +620,13 @@ def extract_sub_urls(url: str, result_path: str):
     )
     visited_links, current_depth = _load_links_and_depth(path=file_path)
     visited_links = _get_cleaned_links_dict(visited_links, url)
-    file_path = _get_sub_urls_file_path(url, cleaned=True)
+    file_path = _get_sub_urls_file_path(result_path, url, cleaned=True)
     _save_links(visited_links, current_depth, path=file_path)
 
 
 def _save_contents(contents: list[HTMLContent], path: str):
     with open(path, "w", encoding="utf-8") as f:
         json.dump([content.to_dict() for content in contents], f, ensure_ascii=False)
-    print(f"{len(contents)} contents saved to {path}")
-
 
 def extract_content(urls: list[str], result_path: str):
     """
