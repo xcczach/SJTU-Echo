@@ -18,6 +18,7 @@ import json
 import os
 import sys
 from selenium.webdriver.chrome.service import Service
+from tqdm.asyncio import tqdm_asyncio
 
 global _debug
 _debug = False
@@ -452,12 +453,16 @@ async def _extract_content_static_async(
     session: aiohttp.ClientSession | None = None,
     process_function: Callable[[str], dict] = _readability_process_content,
 ):
-    if session is None:
-        async with aiohttp.ClientSession() as session:
-            return await _extract_content_static_async_helper(
-                url, session, process_function
-            )
-    return await _extract_content_static_async_helper(url, session)
+    try:
+        if session is None:
+            async with aiohttp.ClientSession() as session:
+                return await _extract_content_static_async_helper(
+                    url, session, process_function
+                )
+        return await _extract_content_static_async_helper(url, session)
+    except Exception as e:
+        debug_print(f"_extract_content_static_async: {e}")
+        return HTMLContent(url, {"title": "", "body": ""}, _get_time_now())
 
 
 async def _extract_content_dynamic_async(
@@ -465,7 +470,11 @@ async def _extract_content_dynamic_async(
     process_function: Callable[[str], dict] = _readability_process_content,
     max_wait_time: float = 10.0,
 ):
-    content = await _fetch_content_dynamic_async(url, max_wait_time)
+    try:
+        content = await _fetch_content_dynamic_async(url, max_wait_time)
+    except Exception as e:
+        debug_print(f"_extract_content_dynamic_async: {e}")
+        content = ""
     doc_content = process_function(content)
     return HTMLContent(url, doc_content, _get_time_now())
 
@@ -656,7 +665,10 @@ def extract_content(urls: list[str], result_path: str):
     async def extract_content_async(urls: list[str]):
         async with aiohttp.ClientSession() as session:
             tasks = [_extract_content_static_async(url, session) for url in urls]
-            static_results = await asyncio.gather(*tasks)
+            if _debug:
+                static_results = await tqdm_asyncio.gather(*tasks, total=len(tasks))
+            else:
+                static_results = await asyncio.gather(*tasks)
 
         DYNAMIC_RESCRAP_THRESHOLD = 400
         dynamic_urls = [

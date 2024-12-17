@@ -75,6 +75,20 @@ If not specified, necessary parameters will be prompted for interactively.
 
 Add `--debug` to print debug information.
 
+### Merge scrapped web content
+
+Merge several json files with scrapped content into one:
+
+```bash
+python merge_content.py --json-paths <files-to-merge> --output-path <output-directory>
+```
+
+Example:
+
+```bash
+python merge_content.py --json-paths database/raw/content/sjtu.json database/raw/content/sjtu-ji.json --output-path database/raw/content/sjtu_sjtu-ji.json
+```
+
 ### Embedding
 
 Embed content from a json file (created by `--extract-content`):
