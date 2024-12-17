@@ -86,8 +86,8 @@ def _split_text_multilang(text, threshold, lang='zh'):
 
 _lang_segment_threshold = {
     "en": 40,
-    "zh": 60,
-    "ja": 60,
+    "zh": 40,
+    "ja": 40,
 }
 def inference(text: str, model, config):
     lang = _detect_language(text)
