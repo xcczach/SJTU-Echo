@@ -32,6 +32,7 @@ def debug_print(*args, **kwargs):
 def _get_driver():
     options = ChromeOptions()
     options.add_argument("--headless")
+    options.add_argument("--enable-javascript")
     prefs = {
             "download.default_directory": "",
             "download.prompt_for_download": False,

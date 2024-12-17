@@ -116,7 +116,6 @@ const isPlaying = ref([]);
 
 const disableAllButtons = () => {
   const buttons = document.querySelectorAll("button");
-  console.log(buttons.length);
       buttons.forEach((element) => {
         if (!element.classList.contains("inline-play-button")) {
       element.disabled = true;
@@ -295,7 +294,9 @@ function promptNewSession() {
 function scrollToBottom() {
   const chatWindow = document.querySelector(".window-chat");
   setTimeout(() => {
-    chatWindow.scrollTop = chatWindow.scrollHeight;
+    if(chatWindow){
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
   }, 0);
 }
 
