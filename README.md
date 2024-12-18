@@ -75,6 +75,14 @@ If not specified, necessary parameters will be prompted for interactively.
 
 Add `--debug` to print debug information.
 
+### Filter scrapped links
+
+Filter scrapped links by a list of prefixes:
+
+```bash
+python filter_links.py --file-path <file-containing-links> --link-prefixes <prefixes> --output-path <output-json-path>
+```
+
 ### Merge scrapped web content
 
 Merge several json files with scrapped content into one:
