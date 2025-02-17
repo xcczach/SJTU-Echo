@@ -1,0 +1,7 @@
+Results for hypothetical_question_with_raw:
+context_recall: 0.9511904761904763
+faithfulness: 0.6766666666666667
+answer_relevancy: 0.7541801026792312
+semantic_similarity: 0.8988316976963265
+llm_context_precision_without_reference: 0.7536111110780053
+Time per question: 0.7513082856684923

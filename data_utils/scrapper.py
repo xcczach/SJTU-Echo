@@ -1,5 +1,5 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup
@@ -17,24 +17,36 @@ from datetime import datetime, timezone
 import json
 import os
 import sys
-from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.chrome.service import Service
+from tqdm.asyncio import tqdm_asyncio
 
+global _debug
+_debug = False
+def debug(flag: bool):
+    global _debug
+    _debug = flag
+
+def debug_print(*args, **kwargs):
+    if _debug:
+        print(*args, **kwargs)
 
 def _get_driver():
-    options = Options()
+    options = ChromeOptions()
     options.add_argument("--headless")
+    options.add_argument("--enable-javascript")
     prefs = {
-        "download.default_directory": "",
-        "download.prompt_for_download": False,
-        "download_restrictions": 3,
-        "profile.default_content_setting_values.automatic_downloads": 2,  # 阻止自动下载
-    }
+            "download.default_directory": "",
+            "download.prompt_for_download": False,
+            "download_restrictions": 3,
+            "profile.default_content_setting_values.automatic_downloads": 2,
+        }
     options.add_experimental_option("prefs", prefs)
     if sys.platform == "win32":
         driver = webdriver.Chrome(options=options)
     elif sys.platform == "linux":
-        service = Service(executable_path="/usr/local/bin/geckodriver")
-        driver = webdriver.Firefox(service=service)
+        options.add_argument("--no-sandbox")
+        service = Service()
+        driver = webdriver.Chrome(options=options, service=service)
     else:
         raise Exception("Unsupported platform")
     return driver
@@ -375,14 +387,14 @@ def _get_time_now():
 
 async def _fetch_content_static_async(url: str, session: aiohttp.ClientSession):
     if _is_file_url(url):
-        print(f"_fetch_content_static_async: Skipping file URL: {url}")
+        debug_print(f"_fetch_content_static_async: Skipping file URL: {url}")
         return ""
     async with session.get(url) as response:
         content_type = response.headers.get("Content-Type", "")
         if "application/json" in content_type or "text/html" in content_type:
             return await response.text()
         else:
-            print(
+            debug_print(
                 f"_fetch_content_static_async: Unsupported content type: {content_type}"
             )
             return ""
@@ -390,7 +402,7 @@ async def _fetch_content_static_async(url: str, session: aiohttp.ClientSession):
 
 def _fetch_content_dynamic(url: str, max_wait_time: float = 10.0):
     if _is_file_url(url):
-        print(f"_fetch_content_dynamic: Skipping file URL: {url}")
+        debug_print(f"_fetch_content_dynamic: Skipping file URL: {url}")
         return ""
     driver = _get_driver()
     driver.get(url)
@@ -414,7 +426,7 @@ def _readability_process_content(content: str):
             "body": doc.summary(),
         }
     except Exception as e:
-        print(f"_readability_process_content: {e}")
+        debug_print(f"_readability_process_content: {e}")
         doc_content = {"title": "", "body": ""}
     return doc_content
 
@@ -441,12 +453,16 @@ async def _extract_content_static_async(
     session: aiohttp.ClientSession | None = None,
     process_function: Callable[[str], dict] = _readability_process_content,
 ):
-    if session is None:
-        async with aiohttp.ClientSession() as session:
-            return await _extract_content_static_async_helper(
-                url, session, process_function
-            )
-    return await _extract_content_static_async_helper(url, session)
+    try:
+        if session is None:
+            async with aiohttp.ClientSession() as session:
+                return await _extract_content_static_async_helper(
+                    url, session, process_function
+                )
+        return await _extract_content_static_async_helper(url, session)
+    except Exception as e:
+        debug_print(f"_extract_content_static_async: {e}")
+        return HTMLContent(url, {"title": "", "body": ""}, _get_time_now())
 
 
 async def _extract_content_dynamic_async(
@@ -454,7 +470,11 @@ async def _extract_content_dynamic_async(
     process_function: Callable[[str], dict] = _readability_process_content,
     max_wait_time: float = 10.0,
 ):
-    content = await _fetch_content_dynamic_async(url, max_wait_time)
+    try:
+        content = await _fetch_content_dynamic_async(url, max_wait_time)
+    except Exception as e:
+        debug_print(f"_extract_content_dynamic_async: {e}")
+        content = ""
     doc_content = process_function(content)
     return HTMLContent(url, doc_content, _get_time_now())
 
@@ -479,7 +499,7 @@ def _count_links(links_dict: StrSetDict) -> int:
 def _save_links(links_dict: StrSetDict, depth: int, path: str):
     with open(path, "w") as f:
         json.dump(_wrap_links_and_depth(links_dict, depth), f)
-    print(f"{_count_links(links_dict)} links saved to {path}")
+    debug_print(f"{_count_links(links_dict)} links saved to {path}")
 
 
 # Remove circular references and duplicates; normalize urls
@@ -618,15 +638,23 @@ def extract_sub_urls(url: str, result_path: str):
     )
     visited_links, current_depth = _load_links_and_depth(path=file_path)
     visited_links = _get_cleaned_links_dict(visited_links, url)
-    file_path = _get_sub_urls_file_path(url, cleaned=True)
+    file_path = _get_sub_urls_file_path(result_path, url, cleaned=True)
     _save_links(visited_links, current_depth, path=file_path)
 
 
 def _save_contents(contents: list[HTMLContent], path: str):
     with open(path, "w", encoding="utf-8") as f:
         json.dump([content.to_dict() for content in contents], f, ensure_ascii=False)
-    print(f"{len(contents)} contents saved to {path}")
 
+def _remove_html_tags(text: str) -> str:
+    return re.sub(r"<[^>]*>", "", text)
+def _merge_spaces(text: str) -> str:
+    return re.sub(r"\s+", " ", text)
+
+def _clean_html_contents(contents: list[HTMLContent]):
+    for content in contents:
+        content.content["body"] = _remove_html_tags(content.content["body"])
+        content.content["body"] = _merge_spaces(content.content["body"])
 
 def extract_content(urls: list[str], result_path: str):
     """
@@ -637,7 +665,10 @@ def extract_content(urls: list[str], result_path: str):
     async def extract_content_async(urls: list[str]):
         async with aiohttp.ClientSession() as session:
             tasks = [_extract_content_static_async(url, session) for url in urls]
-            static_results = await asyncio.gather(*tasks)
+            if _debug:
+                static_results = await tqdm_asyncio.gather(*tasks, total=len(tasks))
+            else:
+                static_results = await asyncio.gather(*tasks)
 
         DYNAMIC_RESCRAP_THRESHOLD = 400
         dynamic_urls = [
@@ -655,4 +686,5 @@ def extract_content(urls: list[str], result_path: str):
         return static_results + dynamic_results
 
     results = asyncio.run(extract_content_async(urls))
+    _clean_html_contents(results)
     _save_contents(results, result_path)

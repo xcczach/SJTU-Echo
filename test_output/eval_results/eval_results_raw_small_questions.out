@@ -1,0 +1,7 @@
+Results for raw:
+context_recall: 0.96
+faithfulness: 0.7933535762483129
+answer_relevancy: 0.8174763796656255
+semantic_similarity: 0.9290594274956534
+llm_context_precision_without_reference: 0.8996333333018132
+Time per question: 0.6169224698841572

@@ -12,6 +12,7 @@ from typing import Literal
 from utils.models import QwenModel
 from backend.rag import get_hf_vectorstore
 from langchain_core.messages import HumanMessage
+from timeit import default_timer as timer
 
 class RAGResult:
     def __init__(self, question: str, retrieved_context: list[str], response: str):
@@ -82,14 +83,15 @@ def _get_questions(file_name: str):
     questions = [question.strip() for question in questions]
     return questions
 
-def eval_rag_strategy(strategy: RAGStrategy | Literal["nothing"], questions_file: str="sample_questions.txt", evaluation_model: str="Qwen/Qwen2.5-1.5B-Instruct", llm_gpu_memory_utilization: float = 0.6):
+def eval_rag_strategy(strategy: RAGStrategy | Literal["nothing"], vectorstore_path: str = "test_output/sample_embeddings", questions_file: str="sample_questions.txt", evaluation_model: str="Qwen/Qwen2.5-1.5B-Instruct", llm_gpu_memory_utilization: float = 0.6):
     def strategy_nothing(question: str):
         return "", [""]
     rag_results = []
     questions = _get_questions(questions_file)
     if strategy != "nothing":
         chat_model = QwenModel(model=evaluation_model, gpu_memory_utilization=llm_gpu_memory_utilization)
-        vectorstore = get_hf_vectorstore("test_output/sample_embeddings")
+        vectorstore = get_hf_vectorstore(vectorstore_path)
+    rag_start_time = timer()
     for question in tqdm(questions, desc="RAG generation"):
         if strategy == "nothing":
             response, retrieved_context = strategy_nothing(question)
@@ -97,5 +99,15 @@ def eval_rag_strategy(strategy: RAGStrategy | Literal["nothing"], questions_file
             inferenced_message, retrieved_context = rag_inference([HumanMessage(content=question)], chat_model, vectorstore, strategy)
             response = inferenced_message.content
         rag_results.append(RAGResult(question=question, retrieved_context=retrieved_context, response=response))
-    return _eval_rag_results(rag_results)
+    rag_time_elapsed = timer() - rag_start_time
+    rag_time_per_question = rag_time_elapsed / len(questions)
+    rag_eval_results = _eval_rag_results(rag_results)
+    rag_eval_results["time_per_question"] = rag_time_per_question
+    return rag_eval_results
 
+def test_rag(strategy: RAGStrategy, vectorstore_path: str="test_output/sample_embeddings",question: str="上海市第八届优秀网站评选活动网上投票何时启动？", evaluation_model: str="Qwen/Qwen2.5-1.5B-Instruct", llm_gpu_memory_utilization: float = 0.6):
+    chat_model = QwenModel(model=evaluation_model, gpu_memory_utilization=llm_gpu_memory_utilization)
+    vectorstore = get_hf_vectorstore(vectorstore_path)
+    inferenced_message, retrieved_context = rag_inference([HumanMessage(content=question)], chat_model, vectorstore, strategy)
+    response = inferenced_message.content
+    return response, retrieved_context

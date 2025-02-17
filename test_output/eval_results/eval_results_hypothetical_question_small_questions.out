@@ -1,6 +1,7 @@
 Results for hypothetical_question:
-context_recall: 0.9
-faithfulness: 0.5850056689342404
-answer_relevancy: 0.7196293757391784
-semantic_similarity: 0.9231986019759549
-llm_context_precision_without_reference: 0.7776053639551672
+context_recall: 0.9333333333333332
+faithfulness: 0.6582564102564104
+answer_relevancy: 0.7577792495655342
+semantic_similarity: 0.9351695053588668
+llm_context_precision_without_reference: 0.833333333299931
+Time per question: 0.9086741107702255

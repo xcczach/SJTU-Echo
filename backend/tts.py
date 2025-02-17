@@ -45,7 +45,7 @@ def _get_result_arr(text: str, model, config, lang: str):
 
 def _split_text_multilang(text, threshold, lang='zh'):
     if lang == 'zh' or lang == 'jp':
-        sentences = re.split(r'(。|！|？|；|：|…)', text)
+        sentences = re.split(r'(，|。|！|？|；|：|…)', text)
         segments = []
         temp_segment = ""
         for i in range(0, len(sentences), 2):
@@ -85,8 +85,8 @@ def _split_text_multilang(text, threshold, lang='zh'):
 
 _lang_segment_threshold = {
     "en": 40,
-    "zh": 60,
-    "ja": 60,
+    "zh": 40,
+    "ja": 40,
 }
 def inference(text: str, model, config):
     lang = _detect_language(text)

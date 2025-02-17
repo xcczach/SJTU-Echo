@@ -1,7 +1,7 @@
 import setproctitle
 from utils.models import QwenModel
 from backend.rag import get_hf_vectorstore, messages_to_json, json_to_messages
-from backend.rag import inference as rag_inference
+from backend.rag import inference as rag_inference, RAGStrategy
 from backend.tts import get_tts_model_and_config
 from backend.tts import inference as tts_inference
 from backend.asr import get_asr_model
@@ -19,7 +19,7 @@ tts_model = None
 tts_config = None
 asr_model = None
 
-def launch_server(chat_model_name: str, hf_vectorstore_source_dir: str, port: int, llm_gpu_memory_utilization: float = 0.6):
+def launch_server(chat_model_name: str, hf_vectorstore_source_dir: str, port: int, rag_strategy: RAGStrategy="hypothetical_question", llm_gpu_memory_utilization: float = 0.6):
     @contextmanager
     def timer_context(task_name: str = ""):
         start = timer()
@@ -46,7 +46,7 @@ def launch_server(chat_model_name: str, hf_vectorstore_source_dir: str, port: in
         messages_json = await request.json()
         messages = json_to_messages(messages_json)
         with timer_context("RAG inference"):
-            new_message, _ = rag_inference(messages, chat_model, vectorstore)
+            new_message, _ = rag_inference(messages, chat_model, vectorstore, rag_strategy)
         return messages_to_json([new_message])
     @app.post("/tts")
     async def tts(request: Request):
